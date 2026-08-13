@@ -12,15 +12,16 @@ import {
   ShieldCheck,
   History,
 } from 'lucide-react';
-import { UserProfile, WeeklyReport, FaultDeclaration, formatFCFA } from '../types';
+import { UserProfile, FaultDeclaration, formatFCFA } from '../types';
+import { ReportListItem } from '../lib/reports';
 
 interface DriverHomeMenuProps {
   currentUser: UserProfile | null;
   onOpenDeclareFault: () => void;
   onOpenWeeklyReport: () => void;
-  driverReports: WeeklyReport[];
+  driverReports: ReportListItem[];
   driverFaults: FaultDeclaration[];
-  onViewReport: (report: WeeklyReport) => void;
+  onViewReport: (reportId: string) => void;
   onViewFault: (fault: FaultDeclaration) => void;
 }
 
@@ -146,7 +147,7 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
             driverReports.map((rpt) => (
               <div
                 key={rpt.id}
-                onClick={() => onViewReport(rpt)}
+                onClick={() => onViewReport(rpt.id)}
                 className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors cursor-pointer flex items-center justify-between gap-3"
               >
                 <div className="flex items-center space-x-3 min-w-0">
@@ -156,13 +157,13 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-slate-900 truncate">
-                        Rapport du {rpt.driverInfo?.semaineDu || 'N/A'} au {rpt.driverInfo?.semaineAu || 'N/A'}
+                        Rapport du {rpt.semaineDu || 'N/A'} au {rpt.semaineAu || 'N/A'}
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                      <span>{rpt.trips?.length || 0} trajet(s)</span>
+                      <span>{rpt.tripCount || 0} trajet(s)</span>
                       <span>·</span>
-                      <span>{rpt.driverInfo?.immatriculation || 'Poids Lourd'}</span>
+                      <span>{rpt.immatriculation || 'Poids Lourd'}</span>
                     </div>
                   </div>
                 </div>

@@ -27,6 +27,16 @@ import {
   DEMO_DRIVER_SCORES,
 } from './data/defaults';
 import { restoreSession, logout as apiLogout } from './lib/auth';
+import { ApiError } from './lib/api';
+import {
+  createReport as apiCreateReport,
+  updateReport as apiUpdateReport,
+  submitReport as apiSubmitReport,
+  putDriverSignature,
+  listReports,
+  getReport,
+  ReportListItem,
+} from './lib/reports';
 import { Header } from './components/Header';
 import { Sidebar, SidebarTab } from './components/Sidebar';
 import { RoutesDispatchView } from './components/RoutesDispatchView';
@@ -122,18 +132,28 @@ export default function App() {
     return createDefaultReport();
   });
 
-  const [history, setHistory] = useState<WeeklyReport[]>(() => {
-    const savedHistory = localStorage.getItem(STORAGE_KEY_HISTORY);
-    if (savedHistory) {
-      try {
-        const parsed = JSON.parse(savedHistory);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((r) => ensureReportDefaults(r));
-        }
-      } catch { }
+  // Historique des rapports : désormais sourcé depuis le backend (voir
+  // useEffect de rafraîchissement plus bas), plus localStorage.
+  const [history, setHistory] = useState<ReportListItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  const refreshReportHistory = React.useCallback(async () => {
+    if (!currentUser) return;
+    setIsHistoryLoading(true);
+    try {
+      const list = await listReports();
+      setHistory(list);
+    } catch {
+      // silencieux : l'historique reste tel quel si le rafraîchissement échoue
+    } finally {
+      setIsHistoryLoading(false);
     }
-    return [];
-  });
+  }, [currentUser]);
+
+  useEffect(() => {
+    refreshReportHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   const [faults, setFaults] = useState<FaultDeclaration[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_FAULTS);
@@ -210,10 +230,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_CURRENT, JSON.stringify(report));
   }, [report]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(history));
-  }, [history]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_FAULTS, JSON.stringify(faults));
@@ -304,45 +320,79 @@ export default function App() {
     showToast('Déconnexion réussie.');
   };
 
-  const handleSaveDraft = () => {
-    const existingIdx = history.findIndex((h) => h.id === report.id);
-    let updatedHistory: WeeklyReport[];
-    if (existingIdx >= 0) {
-      updatedHistory = [...history];
-      updatedHistory[existingIdx] = report;
-    } else {
-      updatedHistory = [report, ...history];
+  const [isSavingReport, setIsSavingReport] = useState(false);
+
+  // Un rapport tout juste créé localement a un id placeholder "RPT-...".
+  // Une fois enregistré côté serveur, il reçoit un vrai id (UUID) — c'est ce
+  // qui distingue "à créer" de "à mettre à jour".
+  const isLocalOnlyReport = (id: string) => id.startsWith('RPT-');
+
+  const persistReport = async (current: WeeklyReport): Promise<WeeklyReport> => {
+    if (isLocalOnlyReport(current.id)) {
+      return apiCreateReport(current);
     }
-    setHistory(updatedHistory);
-    showToast('Rapport sauvegardé avec succès.');
+    return apiUpdateReport(current.id, current);
   };
 
-  const handleSubmitReportToAdmin = () => {
-    if (!report.signatures?.chauffeur?.signature && !report.signatures?.chauffeur?.nom) {
+  const handleSaveDraft = async () => {
+    if (!currentUser) return;
+    setIsSavingReport(true);
+    try {
+      const saved = await persistReport(report);
+      setReport(saved);
+      await refreshReportHistory();
+      showToast('Rapport sauvegardé avec succès dans la base de données.');
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Échec de l'enregistrement du rapport.");
+    } finally {
+      setIsSavingReport(false);
+    }
+  };
+
+  const handleSubmitReportToAdmin = async () => {
+    if (!currentUser) return;
+    const sig = report.signatures?.chauffeur;
+    if (!sig?.signature && !sig?.nom) {
       alert('Veuillez signer la section 5 avant de soumettre le rapport.');
       return;
     }
 
-    const submittedReport: WeeklyReport = {
-      ...report,
-      isSubmitted: true,
-      submittedAt: new Date().toISOString(),
-    };
+    setIsSavingReport(true);
+    try {
+      // 1. S'assurer que le rapport existe côté serveur (créer si besoin).
+      const saved = await persistReport(report);
 
-    setReport(submittedReport);
+      // 2. Enregistrer la signature du chauffeur côté serveur.
+      await putDriverSignature(saved.id, {
+        nom: sig.nom,
+        signature: sig.signature,
+        date: sig.date || new Date().toISOString().slice(0, 10),
+      });
 
-    const existingIdx = history.findIndex((h) => h.id === submittedReport.id);
-    let updatedHistory: WeeklyReport[];
-    if (existingIdx >= 0) {
-      updatedHistory = [...history];
-      updatedHistory[existingIdx] = submittedReport;
-    } else {
-      updatedHistory = [submittedReport, ...history];
+      // 3. Soumettre : verrouille définitivement le rapport côté serveur.
+      const submitted = await apiSubmitReport(saved.id);
+      setReport(submitted);
+      await refreshReportHistory();
+
+      showToast("Rapport hebdomadaire soumis et verrouillé ! Transmis à l'Administration.");
+      setSidebarTab('driver_mobile_app');
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Échec de l'envoi du rapport.");
+    } finally {
+      setIsSavingReport(false);
     }
-    setHistory(updatedHistory);
+  };
 
-    showToast('Rapport hebdomadaire soumis et verrouillé ! Transmis à l\'Administration.');
-    setSidebarTab('driver_mobile_app');
+  // Ouvre un rapport historique : récupère la version complète depuis le
+  // serveur (la liste ne contient qu'un résumé), puis l'affiche.
+  const handleViewHistoricalReport = async (reportId: string) => {
+    try {
+      const full = await getReport(reportId);
+      setReport(full);
+      setSidebarTab('driver_vehicle');
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Impossible de charger ce rapport.');
+    }
   };
 
   const handleAddFault = (newFault: FaultDeclaration) => {
@@ -409,10 +459,9 @@ export default function App() {
     setIsPODModalOpen(true);
   };
 
-  // Filter personal history for logged in driver
-  const driverPersonalReports = history.filter(
-    (r) => r.driverInfo?.nomChauffeur === currentUser?.name || currentUser?.role !== 'CHAUFFEUR'
-  );
+  // Le backend filtre déjà les rapports par chauffeur connecté (voir GET
+  // /api/reports), donc `history` ne contient déjà que ce que ce rôle doit voir.
+  const driverPersonalReports = history;
   const driverPersonalFaults = faults.filter(
     (f) => f.chauffeurId === currentUser?.id || f.chauffeurNom === currentUser?.name || currentUser?.role !== 'CHAUFFEUR'
   );
@@ -537,10 +586,7 @@ export default function App() {
                 onOpenWeeklyReport={() => setSidebarTab('driver_vehicle')}
                 driverReports={driverPersonalReports}
                 driverFaults={driverPersonalFaults}
-                onViewReport={(rpt) => {
-                  setReport(rpt);
-                  setSidebarTab('driver_vehicle');
-                }}
+                onViewReport={handleViewHistoricalReport}
                 onViewFault={(fault) => {
                   setSidebarTab('faults_workflow');
                 }}
@@ -647,6 +693,7 @@ export default function App() {
                   onChange={(sigs) => setReport({ ...report, signatures: sigs })}
                   onSubmitReport={handleSubmitReportToAdmin}
                   isSubmitted={report.isSubmitted}
+                  isSubmitting={isSavingReport}
                 />
               </div>
             )}
@@ -808,10 +855,7 @@ export default function App() {
               <DriverHistoryView
                 currentUser={currentUser}
                 driverReports={history}
-                onViewReport={(rpt) => {
-                  setReport(rpt);
-                  setSidebarTab('driver_vehicle');
-                }}
+                onViewReport={handleViewHistoricalReport}
               />
             )}
 

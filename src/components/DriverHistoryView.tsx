@@ -19,14 +19,15 @@ import {
   Truck,
   MessageSquare,
 } from 'lucide-react';
-import { UserProfile, WeeklyReport } from '../types';
+import { UserProfile } from '../types';
+import { ReportListItem } from '../lib/reports';
 import { DEMO_POD_RECORDS, PODRecord } from './ProofOfDeliveryView';
 import { DEMO_FEEDBACKS, CustomerFeedbackRecord } from './CustomerFeedbackView';
 
 interface DriverHistoryViewProps {
   currentUser: UserProfile | null;
-  driverReports?: WeeklyReport[];
-  onViewReport?: (report: WeeklyReport) => void;
+  driverReports?: ReportListItem[];
+  onViewReport?: (reportId: string) => void;
 }
 
 export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
@@ -302,12 +303,12 @@ export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
               {driverReports.map((rpt) => (
                 <div
                   key={rpt.id}
-                  onClick={() => onViewReport && onViewReport(rpt)}
+                  onClick={() => onViewReport && onViewReport(rpt.id)}
                   className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs cursor-pointer hover:bg-slate-100 transition-colors"
                 >
                   <div>
-                    <span className="font-bold text-slate-900 block">Semaine N° {rpt.semaineNumero}</span>
-                    <span className="text-[11px] text-slate-500">{rpt.driverInfo.nomChauffeur} · Camion {rpt.driverInfo.immatriculation}</span>
+                    <span className="font-bold text-slate-900 block">Semaine du {rpt.semaineDu}</span>
+                    <span className="text-[11px] text-slate-500">{rpt.nomChauffeur} · Camion {rpt.immatriculation}</span>
                   </div>
                   <span className="px-3 py-1 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-lg">
                     {rpt.isSubmitted ? 'Soumis / Validé' : 'Brouillon'}
