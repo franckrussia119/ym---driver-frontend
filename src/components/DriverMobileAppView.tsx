@@ -45,7 +45,7 @@ export const DriverMobileAppView: React.FC<DriverMobileAppViewProps> = ({
   onOpenScanModal,
 }) => {
   const [orders, setOrders] = useState<OrderItem[]>(SAMPLE_ORDERS);
-  const [activeMenuOrderId, setActiveMenuOrderId] = useState<string | null>('o3'); // Opened menu on Microscope as in Screenshot 3
+  const [activeMenuOrderId, setActiveMenuOrderId] = useState<string | null>(null);
 
   const handleConfirm = (id: string) => {
     setOrders((prev) =>

@@ -49,7 +49,7 @@ export const RoutePlanningFuelView: React.FC<RoutePlanningFuelViewProps> = ({
 
   // ROUTING ALGORITHM SIMULATOR STATE
   const [selectedRouteId, setSelectedRouteId] = useState(CAMEROON_ROUTES[0].id);
-  const [selectedTruckImmat, setSelectedTruckImmat] = useState(vehicles[0]?.immatriculation || 'AB-789-XY');
+  const [selectedTruckImmat, setSelectedTruckImmat] = useState(vehicles[0]?.immatriculation || '');
   const [cargoWeightTons, setCargoWeightTons] = useState<number>(30);
   const [dieselPriceFCFA, setDieselPriceFCFA] = useState<number>(840); // 840 FCFA / Liter
 

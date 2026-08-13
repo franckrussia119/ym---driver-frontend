@@ -28,11 +28,11 @@ export const RoutesDispatchView: React.FC<RoutesDispatchViewProps> = ({
   onOpenPODModal,
 }) => {
   const [waypoints, setWaypoints] = useState<RouteWaypoint[]>(INITIAL_DISPATCH_WAYPOINTS);
-  const [selectedWaypointId, setSelectedWaypointId] = useState<number>(6); // Default to Thermometer
+  const [selectedWaypointId, setSelectedWaypointId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const selectedWaypoint =
-    waypoints.find((w) => w.id === selectedWaypointId) || waypoints[0];
+  const selectedWaypoint: RouteWaypoint | undefined =
+    waypoints.find((w) => w.id === selectedWaypointId) ?? waypoints[0];
 
   const handleUpdateStatus = (id: number, newStatus: RouteWaypoint['status']) => {
     setWaypoints((prev) =>
@@ -211,6 +211,11 @@ export const RoutesDispatchView: React.FC<RoutesDispatchViewProps> = ({
           </div>
 
           {/* Selected Waypoint Detail Card (Compact & Clean) */}
+          {!selectedWaypoint ? (
+            <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-6 text-center text-sm text-slate-500">
+              Aucun arrêt pour le moment. Ajoutez des commandes et lancez la planification pour voir les détails d'une tournée ici.
+            </div>
+          ) : (
           <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
             <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -313,6 +318,7 @@ export const RoutesDispatchView: React.FC<RoutesDispatchViewProps> = ({
               </div>
             </div>
           </div>
+          )}
 
         </div>
 

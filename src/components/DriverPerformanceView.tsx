@@ -232,7 +232,9 @@ export const DriverPerformanceView: React.FC<DriverPerformanceViewProps> = ({
           <span className="text-xs font-semibold text-slate-700">
             Tableau d'Analyse Individuelle des Performances Chauffeurs ({sortedScores.length} chauffeurs)
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">Période : {scores[0]?.periode || 'Août 2026'}</span>
+          <span className="text-[10px] text-slate-400 font-mono">
+            Période : {scores[0]?.periode || new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          </span>
         </div>
 
         <div className="overflow-x-auto">

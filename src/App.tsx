@@ -245,8 +245,8 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
       if (currentUser.role === 'CHAUFFEUR') {
         const camionParts = currentUser.camionAssigne?.split('(') || [];
-        const immat = camionParts[0]?.trim() || currentUser.camionAssigne || 'AB-789-XY';
-        const model = camionParts[1] ? camionParts[1].replace(')', '').trim() : 'Volvo FH 500';
+        const immat = camionParts[0]?.trim() || currentUser.camionAssigne || '';
+        const model = camionParts[1] ? camionParts[1].replace(')', '').trim() : '';
 
         setReport((prev) => ({
           ...prev,

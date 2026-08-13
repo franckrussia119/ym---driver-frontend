@@ -46,7 +46,7 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
   const [noConteneurBL, setNoConteneurBL] = useState('');
   const [ligneMaritime, setLigneMaritime] = useState('MSC (Mediterranean Shipping Co)');
   const [clientNom, setClientNom] = useState('');
-  const [truckImmat, setTruckImmat] = useState(vehicles[0]?.immatriculation || 'AB-789-XY');
+  const [truckImmat, setTruckImmat] = useState(vehicles[0]?.immatriculation || '');
   const [chauffeurNom, setChauffeurNom] = useState('Jean-Marc Diallo');
   const [montantCaution, setMontantCaution] = useState<number>(350000);
   const [fraisJournalier, setFraisJournalier] = useState<number>(15000);
@@ -62,7 +62,7 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
     setNoConteneurBL('');
     setLigneMaritime('MSC (Mediterranean Shipping Co)');
     setClientNom('');
-    setTruckImmat(vehicles[0]?.immatriculation || 'AB-789-XY');
+    setTruckImmat(vehicles[0]?.immatriculation || '');
     setChauffeurNom('Jean-Marc Diallo');
     setMontantCaution(350000);
     setFraisJournalier(15000);

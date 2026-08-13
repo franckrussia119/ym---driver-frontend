@@ -57,7 +57,7 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
 
   // Modal State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [selectedTruck, setSelectedTruck] = useState(vehicles[0]?.immatriculation || 'AB-789-XY');
+  const [selectedTruck, setSelectedTruck] = useState(vehicles[0]?.immatriculation || '');
   const [typeIntervention, setTypeIntervention] = useState<MaintenanceCategory>('Vidange Moteur');
   const [dateProgrammee, setDateProgrammee] = useState(new Date().toISOString().split('T')[0]);
   const [mecanicien, setMecanicien] = useState('Antoine Vasseur (Chef Atelier YM)');
