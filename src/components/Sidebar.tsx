@@ -24,7 +24,8 @@ import {
   Globe,
   AlertTriangle,
   Wrench,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -57,7 +58,7 @@ interface SidebarProps {
   activeTab: SidebarTab;
   setActiveTab: (tab: SidebarTab) => void;
   currentUser: UserProfile | null;
-  onOpenLoginModal: () => void;
+  onLogout: () => void;
   notificationCount?: number;
 }
 
@@ -65,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   currentUser,
-  onOpenLoginModal,
+  onLogout,
   notificationCount = 7,
 }) => {
   const [isOpenMobile, setIsOpenMobile] = useState(false);
@@ -575,11 +576,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <button
-              onClick={onOpenLoginModal}
+              onClick={() => {
+                if (window.confirm('Se déconnecter de votre session ?')) onLogout();
+              }}
               className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-              title="Changer de compte"
+              title="Se déconnecter"
             >
-              <UserCheck className="w-4 h-4 text-blue-400" />
+              <LogOut className="w-4 h-4 text-blue-400" />
             </button>
           </div>
         </div>

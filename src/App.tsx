@@ -26,6 +26,7 @@ import {
   DEMO_FUEL_ANALYSIS,
   DEMO_DRIVER_SCORES,
 } from './data/defaults';
+import { restoreSession, logout as apiLogout } from './lib/auth';
 import { Header } from './components/Header';
 import { Sidebar, SidebarTab } from './components/Sidebar';
 import { RoutesDispatchView } from './components/RoutesDispatchView';
@@ -64,7 +65,6 @@ const STORAGE_KEY_CURRENT = 'ym_transit_current_report_v3';
 const STORAGE_KEY_HISTORY = 'ym_transit_history_v3';
 const STORAGE_KEY_FAULTS = 'ym_transit_faults_v3';
 const STORAGE_KEY_INVOICES = 'ym_transit_invoices_v3';
-const STORAGE_KEY_USER = 'ym_transit_active_user_v3';
 const STORAGE_KEY_USERS_LIST = 'ym_transit_users_list_v3';
 
 // Storage keys for 5 new modules
@@ -92,14 +92,21 @@ export default function App() {
     return DEMO_USERS;
   });
 
-  // Auth User State
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    const savedUser = localStorage.getItem(STORAGE_KEY_USER);
-    if (savedUser) {
-      try { return JSON.parse(savedUser); } catch { }
-    }
-    return null; // Aucune connexion automatique : l'utilisateur doit se connecter
-  });
+  // Auth User State — la session réelle est restaurée via le jeton JWT
+  // (voir useEffect ci-dessous), plus jamais depuis un objet utilisateur
+  // stocké en clair dans localStorage.
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
+
+  useEffect(() => {
+    restoreSession().then((user) => {
+      if (user) {
+        handleSelectUserFromPortal(user);
+      }
+      setIsRestoringSession(false);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isDeclareFaultModalOpen, setIsDeclareFaultModalOpen] = useState(false);
@@ -242,7 +249,6 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(currentUser));
       if (currentUser.role === 'CHAUFFEUR') {
         const camionParts = currentUser.camionAssigne?.split('(') || [];
         const immat = camionParts[0]?.trim() || currentUser.camionAssigne || '';
@@ -258,8 +264,6 @@ export default function App() {
           },
         }));
       }
-    } else {
-      localStorage.removeItem(STORAGE_KEY_USER);
     }
   }, [currentUser]);
 
@@ -291,6 +295,13 @@ export default function App() {
   const handleLogin = (user: UserProfile) => {
     handleSelectUserFromPortal(user);
     setIsLoginModalOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await apiLogout();
+    setCurrentUser(null);
+    setSidebarTab('routes_overview');
+    showToast('Déconnexion réussie.');
   };
 
   const handleSaveDraft = () => {
@@ -398,28 +409,6 @@ export default function App() {
     setIsPODModalOpen(true);
   };
 
-  // User Management Actions
-  const handleAddUser = (newUser: UserProfile) => {
-    setUsers([...users, newUser]);
-    showToast(`Utilisateur ${newUser.name} créé.`);
-  };
-
-  const handleUpdateUser = (updated: UserProfile) => {
-    setUsers(users.map((u) => (u.id === updated.id ? updated : u)));
-    showToast(`Compte de ${updated.name} mis à jour.`);
-  };
-
-  const handleToggleUserActive = (userId: string) => {
-    setUsers(
-      users.map((u) => {
-        if (u.id !== userId) return u;
-        const newActive = u.isActive === false ? true : false;
-        showToast(`Compte de ${u.name} ${newActive ? 'activé' : 'désactivé'}.`);
-        return { ...u, isActive: newActive };
-      })
-    );
-  };
-
   // Filter personal history for logged in driver
   const driverPersonalReports = history.filter(
     (r) => r.driverInfo?.nomChauffeur === currentUser?.name || currentUser?.role !== 'CHAUFFEUR'
@@ -428,11 +417,23 @@ export default function App() {
     (f) => f.chauffeurId === currentUser?.id || f.chauffeurNom === currentUser?.name || currentUser?.role !== 'CHAUFFEUR'
   );
 
+  // Restauration de session en cours : éviter le clignotement de l'écran de connexion
+  if (isRestoringSession) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-400 text-sm">
+          <div className="w-5 h-5 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+          <span>Vérification de la session…</span>
+        </div>
+      </div>
+    );
+  }
+
   // If no user logged in
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-900">
-        <LandingPortal users={users} onSelectUser={handleSelectUserFromPortal} />
+        <LandingPortal onLoginSuccess={handleSelectUserFromPortal} />
         <PWAInstallPrompt />
       </div>
     );
@@ -452,7 +453,7 @@ export default function App() {
 
       {/* Login Modal */}
       {isLoginModalOpen && (
-        <LoginModal onLogin={handleLogin} currentUser={currentUser} usersList={users} />
+        <LoginModal onLogin={handleLogin} onClose={() => setIsLoginModalOpen(false)} />
       )}
 
       {/* Fault Declaration Modal */}
@@ -496,7 +497,7 @@ export default function App() {
         activeTab={sidebarTab}
         setActiveTab={setSidebarTab}
         currentUser={currentUser}
-        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Workspace Area */}
@@ -507,7 +508,7 @@ export default function App() {
           currentUser={currentUser}
           activeTab={sidebarTab as any}
           setActiveTab={(tab: any) => setSidebarTab(tab)}
-          onOpenLoginModal={() => setIsLoginModalOpen(true)}
+          onLogout={handleLogout}
           onOpenDeclareFault={() => setIsDeclareFaultModalOpen(true)}
           onOpenCreateInvoice={() => setIsInvoiceModalOpen(true)}
           onLoadDemo={() => setReport(createDefaultReport())}
@@ -725,12 +726,7 @@ export default function App() {
 
             {/* 5. SUPERADMIN USER MANAGEMENT VIEW */}
             {sidebarTab === 'superadmin_users' && (
-              <UserManagementView
-                users={users}
-                onAddUser={handleAddUser}
-                onUpdateUser={handleUpdateUser}
-                onToggleUserActive={handleToggleUserActive}
-              />
+              <UserManagementView />
             )}
 
             {/* 6. REGISTRE FLOTTE & DOCUMENTS */}

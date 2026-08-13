@@ -28,7 +28,7 @@ interface HeaderProps {
   currentUser: UserProfile | null;
   activeTab: SidebarTab;
   setActiveTab: (tab: SidebarTab) => void;
-  onOpenLoginModal: () => void;
+  onLogout: () => void;
   onOpenDeclareFault: () => void;
   onOpenCreateInvoice: () => void;
   onLoadDemo: () => void;
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   activeTab,
   setActiveTab,
-  onOpenLoginModal,
+  onLogout,
   onOpenDeclareFault,
   onOpenCreateInvoice,
   onLoadDemo,
@@ -306,11 +306,13 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* User Account Chip */}
+          {/* User Account Chip — real logout */}
           <button
-            onClick={onOpenLoginModal}
+            onClick={() => {
+              if (window.confirm('Se déconnecter de votre session ?')) onLogout();
+            }}
             className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700/80 px-2.5 py-1 rounded-lg border border-slate-700/80 text-xs transition-colors cursor-pointer"
-            title="Changer de compte"
+            title="Se déconnecter"
           >
             <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden shrink-0">
               {currentUser?.driverPhotoUrl ? (

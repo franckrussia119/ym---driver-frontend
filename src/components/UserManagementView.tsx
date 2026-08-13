@@ -1,35 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   UserPlus,
   ShieldCheck,
   Edit2,
-  Trash2,
   CheckCircle2,
   XCircle,
   Truck,
-  Key,
   Eye,
   EyeOff,
   UserCheck,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
-import { UserProfile, UserRole } from '../types';
+import { UserRole } from '../types';
+import { listUsers, createUser, updateUser, BackendUser } from '../lib/users';
+import { ApiError } from '../lib/api';
 
-interface UserManagementViewProps {
-  users: UserProfile[];
-  onAddUser: (user: UserProfile) => void;
-  onUpdateUser: (user: UserProfile) => void;
-  onToggleUserActive: (userId: string) => void;
-}
+export const UserManagementView: React.FC = () => {
+  const [users, setUsers] = useState<BackendUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-export const UserManagementView: React.FC<UserManagementViewProps> = ({
-  users,
-  onAddUser,
-  onUpdateUser,
-  onToggleUserActive,
-}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editingUser, setEditingUser] = useState<BackendUser | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -39,6 +35,23 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
   const [camionAssigne, setCamionAssigne] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const fetchUsers = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const data = await listUsers();
+      setUsers(data);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les utilisateurs.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
   const handleOpenCreate = () => {
     setEditingUser(null);
     setName('');
@@ -46,44 +59,64 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
     setRole('CHAUFFEUR');
     setPassword('');
     setCamionAssigne('');
+    setFormError(null);
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (u: UserProfile) => {
+  const handleOpenEdit = (u: BackendUser) => {
     setEditingUser(u);
     setName(u.name);
     setEmail(u.email);
     setRole(u.role);
-    setPassword(''); // Keep blank unless changing
+    setPassword(''); // Laissé vide = mot de passe inchangé
     setCamionAssigne(u.camionAssigne || '');
+    setFormError(null);
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingUser) {
-      const updated: UserProfile = {
-        ...editingUser,
-        name,
-        email,
-        role,
-        camionAssigne: role === 'CHAUFFEUR' ? camionAssigne : undefined,
-        password: password ? password : editingUser.password,
-      };
-      onUpdateUser(updated);
-    } else {
-      const newUser: UserProfile = {
-        id: `user_${Date.now()}`,
-        name,
-        email,
-        role,
-        password: password || 'ym123456',
-        isActive: true,
-        camionAssigne: role === 'CHAUFFEUR' ? camionAssigne : undefined,
-      };
-      onAddUser(newUser);
+    setFormError(null);
+
+    if (!editingUser && (!password || password.length < 6)) {
+      setFormError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
     }
-    setIsModalOpen(false);
+
+    setIsSubmitting(true);
+    try {
+      if (editingUser) {
+        await updateUser(editingUser.id, {
+          name,
+          role,
+          camionAssigne: role === 'CHAUFFEUR' ? camionAssigne : null,
+          ...(password ? { password } : {}),
+        });
+      } else {
+        await createUser({
+          name,
+          email,
+          password,
+          role,
+          camionAssigne: role === 'CHAUFFEUR' ? camionAssigne : undefined,
+        });
+      }
+      setIsModalOpen(false);
+      await fetchUsers();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : 'Une erreur est survenue.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleUserActive = async (u: BackendUser) => {
+    try {
+      await updateUser(u.id, { isActive: !u.isActive });
+      await fetchUsers();
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : 'Impossible de modifier ce compte.');
+    }
   };
 
   return (
@@ -110,15 +143,32 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
         </button>
       </div>
 
+      {loadError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-3.5 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{loadError}</span>
+          <button onClick={fetchUsers} className="ml-auto underline cursor-pointer">Réessayer</button>
+        </div>
+      )}
+
       {/* Users Table */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
         <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-700">
+          <span className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+            <Users className="w-3.5 h-3.5 text-slate-400" />
             Comptes enregistrés ({users.length})
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">Sécurité : Mots de passe masqués</span>
+          <span className="text-[10px] text-slate-400 font-mono">Sécurité : Mots de passe chiffrés côté serveur</span>
         </div>
 
+        {isLoading ? (
+          <div className="p-10 flex items-center justify-center text-slate-400 text-sm gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Chargement des utilisateurs…
+          </div>
+        ) : users.length === 0 ? (
+          <div className="p-10 text-center text-slate-400 text-sm">Aucun utilisateur pour le moment.</div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -126,7 +176,6 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 <th className="py-3 px-4">Utilisateur</th>
                 <th className="py-3 px-3">Rôle</th>
                 <th className="py-3 px-3">Véhicule Assigné</th>
-                <th className="py-3 px-3">Mot de passe</th>
                 <th className="py-3 px-3 text-center">Statut</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -137,11 +186,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   <td className="py-3.5 px-4 font-semibold text-slate-900">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center overflow-hidden shrink-0">
-                        {u.driverPhotoUrl ? (
-                          <img src={u.driverPhotoUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          u.name.charAt(0)
-                        )}
+                        {u.name.charAt(0)}
                       </div>
                       <div>
                         <div className="text-xs font-bold text-slate-900">{u.name}</div>
@@ -179,20 +224,16 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     )}
                   </td>
 
-                  <td className="py-3.5 px-3 font-mono text-slate-400">
-                    ••••••••
-                  </td>
-
                   <td className="py-3.5 px-3 text-center">
                     <button
-                      onClick={() => onToggleUserActive(u.id)}
+                      onClick={() => handleToggleUserActive(u)}
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
-                        u.isActive !== false
+                        u.isActive
                           ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
                           : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
                       }`}
                     >
-                      {u.isActive !== false ? (
+                      {u.isActive ? (
                         <>
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                           <span>Actif</span>
@@ -221,6 +262,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* User Edit / Create Modal */}
@@ -260,9 +302,13 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={!!editingUser}
                   placeholder="Ex: m.diop@ym-transit.com"
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
                 />
+                {editingUser && (
+                  <p className="text-[10px] text-slate-400 mt-1">L'email ne peut pas être modifié.</p>
+                )}
               </div>
 
               <div>
@@ -302,8 +348,9 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Au moins 6 caractères"
                     required={!editingUser}
+                    minLength={6}
                     className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none pr-10 font-mono"
                   />
                   <button
@@ -316,6 +363,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 </div>
               </div>
 
+              {formError && (
+                <p className="text-xs text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {formError}
+                </p>
+              )}
+
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -326,8 +379,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
+                  {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {editingUser ? 'Mettre à jour' : 'Enregistrer Utilisateur'}
                 </button>
               </div>

@@ -8,6 +8,12 @@ RUN npm ci --no-audit --no-fund
 
 # Copy source and build the static production bundle
 COPY . .
+
+# Vite bakes VITE_-prefixed env vars into the static JS bundle at build time
+# (not at container runtime), so this must be a build ARG, set in Coolify
+# under "Build Variables" — a normal runtime env var would have no effect.
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # ---- Runtime stage ----
