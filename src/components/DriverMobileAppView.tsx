@@ -28,68 +28,10 @@ interface OrderItem {
   status: 'pending' | 'confirmed' | 'rejected';
 }
 
-const SAMPLE_ORDERS: OrderItem[] = [
-  {
-    id: 'o1',
-    name: 'Main Warehouse',
-    timeWindow: '06:00 - 21:50',
-    timeWindowStatus: 'valid',
-    time: '10:47',
-    etaOffset: '+5 min',
-    address: 'Germany, An der Quelle 15, Bemerode 30539, Hannover',
-    mileage: '11.7 km',
-    duration: '10 min',
-    status: 'confirmed',
-  },
-  {
-    id: 'o2',
-    name: 'Medicine',
-    timeWindow: '00:00 - 23:59',
-    timeWindowStatus: 'alert',
-    time: '10:57',
-    etaOffset: '+10 min',
-    address: 'Germany, In der Steinriede 6, List 30161, Hannover',
-    mileage: '8.3 km',
-    duration: '10 min',
-    status: 'pending',
-  },
-  {
-    id: 'o3',
-    name: 'Microscope',
-    timeWindow: '00:00 - 23:59',
-    timeWindowStatus: 'valid',
-    time: '11:03',
-    etaOffset: '+13 min',
-    address: 'Germany, Herrenhäuser Kirchweg 5B, Nordstadt 30167',
-    mileage: '3.8 km',
-    duration: '6 min',
-    status: 'pending',
-  },
-  {
-    id: 'o4',
-    name: 'Phonendoscope',
-    timeWindow: '00:00 - 23:59',
-    timeWindowStatus: 'valid',
-    time: '11:12',
-    etaOffset: '+20 min',
-    address: 'Badenstedter Str. 214, 30455 Hannover, Germany',
-    mileage: '7.7 km',
-    duration: '8 min',
-    status: 'pending',
-  },
-  {
-    id: 'o5',
-    name: 'Pills',
-    timeWindow: '00:00 - 23:59',
-    timeWindowStatus: 'alert',
-    time: '11:20',
-    etaOffset: '+26 min',
-    address: 'Germany, Weetzener Landstraße 124, Hemmingen',
-    mileage: '5.2 km',
-    duration: '7 min',
-    status: 'pending',
-  },
-];
+// Aucune commande fictive : la liste démarre vide. Les arrêts réels
+// apparaissent une fois qu'une tournée leur a été assignée (module
+// "Planification").
+const SAMPLE_ORDERS: OrderItem[] = [];
 
 interface DriverMobileAppViewProps {
   onBackToDashboard?: () => void;

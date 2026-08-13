@@ -98,7 +98,7 @@ export default function App() {
     if (savedUser) {
       try { return JSON.parse(savedUser); } catch { }
     }
-    return DEMO_USERS[0]; // Start logged in for seamless demo
+    return null; // Aucune connexion automatique : l'utilisateur doit se connecter
   });
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -125,7 +125,7 @@ export default function App() {
         }
       } catch { }
     }
-    return [createDefaultReport()];
+    return [];
   });
 
   const [faults, setFaults] = useState<FaultDeclaration[]>(() => {

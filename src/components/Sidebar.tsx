@@ -69,20 +69,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
   notificationCount = 7,
 }) => {
   const [isOpenMobile, setIsOpenMobile] = useState(false);
-
-  // SIDEBAR VISIBILITY: Strictly visible ONLY for ADMIN or SUPER_ADMIN
-  const isAdminOrSuperAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
-  if (!isAdminOrSuperAdmin) {
-    return null;
-  }
-
-  const [selectedRegion, setSelectedRegion] = useState('Europe (GMT +02:00)');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     planning: true,
     fleet: true,
     operations: true,
     navigation: true,
   });
+
+  // SIDEBAR VISIBILITY : Admin, Super Admin et Superviseur (supervision de
+  // flotte). Chauffeur et Mécanicien utilisent leurs propres menus mobiles
+  // dédiés (voir MobileBottomNav), plus simples pour un usage terrain.
+  //
+  // IMPORTANT : ce retour anticipé doit rester APRÈS tous les hooks
+  // ci-dessus. Le placer avant provoque un nombre de hooks différent d'un
+  // rendu à l'autre dès que le rôle de l'utilisateur change (ex: changement
+  // de compte dans la même session), ce qui fait planter React entièrement
+  // (écran blanc). Ne jamais réintroduire un `return` avant un hook.
+  const canSeeSidebar =
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'SUPERVISEUR';
+  if (!canSeeSidebar) {
+    return null;
+  }
 
   const toggleGroup = (groupKey: string) => {
     setExpandedGroups((prev) => ({
@@ -149,27 +158,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Region & Timezone Selector */}
+        {/* Zone d'opération — Cameroun / Afrique Centrale, un seul fuseau horaire */}
         <div className="px-3 py-2.5 border-b border-slate-800">
           <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-800/80 rounded-lg border border-slate-700/60 text-xs text-slate-200">
             <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-            <select
-              value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
-              className="bg-transparent text-white text-xs font-medium w-full focus:outline-none cursor-pointer"
-            >
-              <option value="Europe (GMT +02:00)" className="bg-slate-900">
-                Europe (GMT +02:00)
-              </option>
-              <option value="YM-TRANSIT France (GMT +01:00)" className="bg-slate-900">
-                France (GMT +01:00)
-              </option>
-              <option value="Afrique de l'Ouest (GMT +00:00)" className="bg-slate-900">
-                Afrique de l'Ouest (GMT +00:00)
-              </option>
-            </select>
+            <span className="text-white text-xs font-medium">Cameroun & Afrique Centrale (GMT +01:00)</span>
           </div>
         </div>
+
 
         {/* Scrollable Navigation Items */}
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">

@@ -13,74 +13,10 @@ import {
   Search,
 } from 'lucide-react';
 
-export const INITIAL_DISPATCH_WAYPOINTS: RouteWaypoint[] = [
-  {
-    id: 1,
-    name: 'Main Warehouse',
-    address: 'Germany, An der Quelle 15, Bemerode 30539, Hannover',
-    eta: '10:42',
-    actualArrival: '10:42',
-    etaOffset: '+05 min',
-    status: 'completed',
-    xPct: 20,
-    yPct: 30,
-  },
-  {
-    id: 2,
-    name: 'Medicine',
-    address: 'Germany, In der Steinriede 6, List 30161, Hannover',
-    eta: '10:47',
-    actualArrival: '10:50',
-    etaOffset: '+10 min',
-    status: 'completed',
-    xPct: 35,
-    yPct: 25,
-  },
-  {
-    id: 3,
-    name: 'Microscope',
-    address: 'Germany, Herrenhäuser Kirchweg 5B, Nordstadt 30167, Hannover',
-    eta: '10:49',
-    actualArrival: '11:02',
-    etaOffset: '+13 min',
-    status: 'delayed',
-    xPct: 55,
-    yPct: 45,
-  },
-  {
-    id: 4,
-    name: 'Phonendoscope',
-    address: 'Badenstedter Str. 214, 30455 Hannover, Germany',
-    eta: '10:51',
-    actualArrival: '',
-    etaOffset: '+20 min',
-    status: 'pending',
-    xPct: 70,
-    yPct: 60,
-  },
-  {
-    id: 5,
-    name: 'Pills',
-    address: 'Germany, Weetzener Landstraße 124, Hemmingen',
-    eta: '10:54',
-    actualArrival: '',
-    etaOffset: '+26 min',
-    status: 'pending',
-    xPct: 80,
-    yPct: 70,
-  },
-  {
-    id: 6,
-    name: 'Thermometer',
-    address: 'Germany, Hildesheimer Straße 158, Laatzen 30880, Hannover',
-    eta: '10:57',
-    actualArrival: '',
-    etaOffset: '+32 min',
-    status: 'pending',
-    xPct: 88,
-    yPct: 82,
-  },
-];
+// Aucune tournée fictive : la liste démarre vide. Les arrêts réels
+// proviennent de la planification (voir module "Planification") ou d'une
+// saisie manuelle par l'Administration/Superviseur.
+export const INITIAL_DISPATCH_WAYPOINTS: RouteWaypoint[] = [];
 
 interface RoutesDispatchViewProps {
   onOpenMobileView?: () => void;
@@ -186,7 +122,7 @@ export const RoutesDispatchView: React.FC<RoutesDispatchViewProps> = ({
                       <div className="flex items-center gap-2">
                         <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                         <span className="font-semibold text-slate-900">MAN TGE / Volvo FH 500 (AB-789-XY)</span>
-                        <span className="text-slate-400 font-normal text-xs">— Tournée Hannover</span>
+                        <span className="text-slate-400 font-normal text-xs">— Tournée du jour</span>
                       </div>
                     </td>
                     <td className="py-3 px-3 text-right text-slate-500 font-mono text-[11px]">10:47 — 11:42</td>
@@ -388,7 +324,7 @@ export const RoutesDispatchView: React.FC<RoutesDispatchViewProps> = ({
                 <Navigation className="w-3.5 h-3.5 text-blue-600" />
                 Carte d'itinéraire GPS
               </span>
-              <span className="text-[10px] text-slate-500 font-mono">Hannover & Region</span>
+              <span className="text-[10px] text-slate-500 font-mono">Cameroun & Afrique Centrale</span>
             </div>
             <div className="flex-1 relative">
               <RouteMap

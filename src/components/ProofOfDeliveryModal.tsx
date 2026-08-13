@@ -29,14 +29,21 @@ export const ProofOfDeliveryModal: React.FC<ProofOfDeliveryModalProps> = ({
   const [signatureData, setSignatureData] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  const handleSimulatePhoto = () => {
-    // Generate a placeholder delivery photo
-    const samplePhoto =
-      'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80';
-    setPhotoUrl(samplePhoto);
+  const handleCapturePhoto = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setPhotoUrl(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = ''; // permet de reprendre la même photo si besoin
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,14 +148,24 @@ export const ProofOfDeliveryModal: React.FC<ProofOfDeliveryModalProps> = ({
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleSimulatePhoto}
-                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
-                >
-                  <Camera className="w-4 h-4 text-emerald-600" />
-                  <span>Prendre / Capturer une photo du colis</span>
-                </button>
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileSelected}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCapturePhoto}
+                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Camera className="w-4 h-4 text-emerald-600" />
+                    <span>Prendre / Capturer une photo du colis</span>
+                  </button>
+                </>
               )}
             </div>
 

@@ -169,8 +169,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           </>
         )}
 
-        {/* ADMIN & SUPER_ADMIN MOBILE / TABLET MENU */}
-        {(role === 'ADMIN' || role === 'SUPER_ADMIN') && (
+        {/* ADMIN, SUPER_ADMIN & SUPERVISEUR MOBILE / TABLET MENU */}
+        {(role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'SUPERVISEUR') && (
           <>
             <button
               type="button"

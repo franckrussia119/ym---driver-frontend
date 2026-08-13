@@ -46,56 +46,9 @@ interface ProofOfDeliveryViewProps {
   driversList?: UserProfile[];
 }
 
-export const DEMO_POD_RECORDS: PODRecord[] = [
-  {
-    id: 'POD-2026-001',
-    blNumber: 'BL-889012-MSC',
-    containerNumber: 'MSCU-892014-9',
-    clientName: 'Cimenteries du Cameroun (CIMENCAM)',
-    deliveryAddress: 'Usine Bonabéri, Zone Industrielle Douala',
-    driverName: 'Mamadou Kouyaté',
-    truckImmatriculation: 'LT-982-AA',
-    dateTime: '12/08/2026 à 10:30',
-    gpsLocation: 'Douala (Lat 4.081, Long 9.712)',
-    recipientName: 'M. Jean-Paul Mbarga (Chef de Stock)',
-    status: 'LIVRE_CONFORME',
-    signatureData: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiPjxwYXRoIGQ9Ik0xMCAyNSBRIDI1IDEwIDQwIDI1IFQgNzAgMjUiIHN0cm9rZT0iIzFkNGVkOCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PC9zdmc+',
-    photoUrl: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80',
-    observations: 'Livraison effectuée à l\'heure. Plomb N° 99281-B intact au déchargement.',
-  },
-  {
-    id: 'POD-2026-002',
-    blNumber: 'BL-991044-MAE',
-    containerNumber: 'MAEU-491023-4',
-    clientName: 'Brasseries du Cameroun (SABC)',
-    deliveryAddress: 'Dépôt Central Bassa, Douala',
-    driverName: 'Ousmane Sow',
-    truckImmatriculation: 'OU-412-BB',
-    dateTime: '11/08/2026 à 15:45',
-    gpsLocation: 'Douala Bassa (Lat 4.053, Long 9.740)',
-    recipientName: 'Mme Christine Ndomo',
-    status: 'SOUS_RESERVES',
-    signatureData: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiPjxwYXRoIGQ9Ik0xMCAyMCBMIDQwIDQwIEwgODAgMTAiIHN0cm9rZT0iIzFkNGVkOCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIi8+PC9zdmc+',
-    photoUrl: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80',
-    observations: 'Légères éraflures sur la porte extérieure du conteneur. Colis intérieurs vérifiés sains.',
-  },
-  {
-    id: 'POD-2026-003',
-    blNumber: 'BL-771092-CMA',
-    containerNumber: 'CMAU-902184-1',
-    clientName: 'SOGEA SATOM Cameroun',
-    deliveryAddress: 'Chantier Axe Bafoussam - Yaoundé',
-    driverName: 'Ibrahim Traoré',
-    truckImmatriculation: 'AD-109-CC',
-    dateTime: '10/08/2026 à 14:10',
-    gpsLocation: 'Bafoussam (Lat 5.477, Long 10.417)',
-    recipientName: 'M. Luc Tagne (Conducteur de Travaux)',
-    status: 'LIVRE_CONFORME',
-    signatureData: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiPjxwYXRoIGQ9Ik01IDI1IEMgMjAgNSA0MCA0NSA2MCA1IiBzdHJva2U9IiMxZDRlZDgiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==',
-    photoUrl: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80',
-    observations: 'Matériel lourd réceptionné sur site par grue. Récépissé signé et tamponné.',
-  },
-];
+// Aucune preuve de livraison fictive : la liste démarre vide. Chaque
+// enregistrement réel est créé par un chauffeur lors d'une livraison.
+export const DEMO_POD_RECORDS: PODRecord[] = [];
 
 export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
   currentUser,
@@ -117,6 +70,19 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
   const [signatureData, setSignatureData] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [observations, setObservations] = useState('');
+  const [gpsLocation, setGpsLocation] = useState('');
+
+  // Capture la position GPS réelle du navigateur à l'ouverture du
+  // formulaire de création (best-effort : n'empêche jamais la création si
+  // refusée ou indisponible).
+  React.useEffect(() => {
+    if (!isModalOpen || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setGpsLocation(`Lat ${pos.coords.latitude.toFixed(4)}, Long ${pos.coords.longitude.toFixed(4)}`),
+      () => setGpsLocation(''),
+      { timeout: 8000 }
+    );
+  }, [isModalOpen]);
 
   // Filtered Records
   const filteredRecords = podRecords.filter((rec) => {
@@ -129,10 +95,19 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
     return matchesSearch && matchesStatus;
   });
 
-  const handleSimulatePhoto = () => {
-    const samplePhoto =
-      'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80';
-    setPhotoUrl(samplePhoto);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCapturePhoto = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setPhotoUrl(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleCreatePOD = (e: React.FormEvent) => {
@@ -151,11 +126,11 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
       blNumber,
       containerNumber: containerNumber || 'N/A',
       clientName,
-      deliveryAddress: deliveryAddress || 'Douala Port / Zone Industrielle',
+      deliveryAddress: deliveryAddress || '',
       driverName: currentUser?.name || 'Chauffeur YM-TRANSIT',
-      truckImmatriculation: 'LT-982-AA',
+      truckImmatriculation: currentUser?.camionAssigne || 'Non renseigné',
       dateTime: `${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
-      gpsLocation: 'Douala (GPS Actif)',
+      gpsLocation: gpsLocation || 'Non disponible',
       recipientName,
       status,
       signatureData,
@@ -176,6 +151,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
     setSignatureData('');
     setPhotoUrl(null);
     setObservations('');
+    setGpsLocation('');
 
     // Switch view to history automatically
     setActiveSubTab('HISTORY');
@@ -207,6 +183,14 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
 
   return (
     <div className="space-y-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileSelected}
+        className="hidden"
+      />
       {/* Header Banner */}
       <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm border border-slate-800">
         <div className="flex items-center justify-between">
@@ -442,7 +426,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={handleSimulatePhoto}
+                  onClick={handleCapturePhoto}
                   className="w-full py-3 bg-slate-50 hover:bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
                   <Camera className="w-4 h-4 text-emerald-600" />
@@ -844,7 +828,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                 ) : (
                   <button
                     type="button"
-                    onClick={handleSimulatePhoto}
+                    onClick={handleCapturePhoto}
                     className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Camera className="w-4 h-4 text-emerald-600" />
