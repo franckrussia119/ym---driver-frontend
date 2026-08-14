@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { SignaturePad } from './SignaturePad';
+import { listPOD, createPOD } from '../lib/pod';
+import { ApiError } from '../lib/api';
 
 export interface PODRecord {
   id: string;
@@ -54,10 +56,30 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
   currentUser,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'MENU' | 'CREATE' | 'HISTORY'>('MENU');
-  const [podRecords, setPodRecords] = useState<PODRecord[]>(DEMO_POD_RECORDS);
+  const [podRecords, setPodRecords] = useState<PODRecord[]>([]);
+  const [isLoadingPOD, setIsLoadingPOD] = useState(true);
+  const [podLoadError, setPodLoadError] = useState<string | null>(null);
+  const [isSubmittingPOD, setIsSubmittingPOD] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedPOD, setSelectedPOD] = useState<PODRecord | null>(null);
+
+  const fetchPODRecords = React.useCallback(async () => {
+    setIsLoadingPOD(true);
+    setPodLoadError(null);
+    try {
+      const records = await listPOD();
+      setPodRecords(records);
+    } catch (err) {
+      setPodLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les preuves de livraison.');
+    } finally {
+      setIsLoadingPOD(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchPODRecords();
+  }, [fetchPODRecords]);
 
   // Modal Form State for New POD
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -110,7 +132,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
     e.target.value = '';
   };
 
-  const handleCreatePOD = (e: React.FormEvent) => {
+  const handleCreatePOD = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!blNumber.trim() || !clientName.trim() || !recipientName.trim()) {
       alert('Veuillez remplir le N° BL, le nom du client et du récepteur.');
@@ -121,41 +143,47 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
       return;
     }
 
-    const newRecord: PODRecord = {
-      id: `POD-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
-      blNumber,
-      containerNumber: containerNumber || 'N/A',
-      clientName,
-      deliveryAddress: deliveryAddress || '',
-      driverName: currentUser?.name || 'Chauffeur YM-TRANSIT',
-      truckImmatriculation: currentUser?.camionAssigne || 'Non renseigné',
-      dateTime: `${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
-      gpsLocation: gpsLocation || 'Non disponible',
-      recipientName,
-      status,
-      signatureData,
-      photoUrl: photoUrl || undefined,
-      observations,
-    };
+    setIsSubmittingPOD(true);
+    try {
+      await createPOD({
+        blNumber,
+        containerNumber: containerNumber || 'N/A',
+        clientName,
+        deliveryAddress: deliveryAddress || '',
+        driverName: currentUser?.name || 'Chauffeur YM-TRANSIT',
+        truckImmatriculation: currentUser?.camionAssigne || 'Non renseigné',
+        dateTime: `${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
+        gpsLocation: gpsLocation || 'Non disponible',
+        recipientName,
+        status,
+        signatureData,
+        photoUrl: photoUrl || undefined,
+        observations,
+      });
 
-    setPodRecords([newRecord, ...podRecords]);
-    setIsModalOpen(false);
+      await fetchPODRecords();
+      setIsModalOpen(false);
 
-    // Reset Form
-    setBlNumber('');
-    setContainerNumber('');
-    setClientName('');
-    setDeliveryAddress('');
-    setRecipientName('');
-    setStatus('LIVRE_CONFORME');
-    setSignatureData('');
-    setPhotoUrl(null);
-    setObservations('');
-    setGpsLocation('');
+      // Reset Form
+      setBlNumber('');
+      setContainerNumber('');
+      setClientName('');
+      setDeliveryAddress('');
+      setRecipientName('');
+      setStatus('LIVRE_CONFORME');
+      setSignatureData('');
+      setPhotoUrl(null);
+      setObservations('');
+      setGpsLocation('');
 
-    // Switch view to history automatically
-    setActiveSubTab('HISTORY');
-    alert('Preuve de livraison (POD) créée et enregistrée avec succès !');
+      // Switch view to history automatically
+      setActiveSubTab('HISTORY');
+      alert('Preuve de livraison (POD) créée et enregistrée avec succès dans la base de données !');
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Échec de l'enregistrement de la preuve de livraison.");
+    } finally {
+      setIsSubmittingPOD(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -405,8 +433,11 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                 Signature Numérique du Récepteur <span className="text-rose-500">*</span>
               </label>
               <SignaturePad
-                onSave={(data) => setSignatureData(data)}
-                onClear={() => setSignatureData('')}
+                label="Signature du récepteur"
+                nom={recipientName}
+                value={signatureData}
+                date={new Date().toISOString().split('T')[0]}
+                onSave={(_nom, signatureDataUrl) => setSignatureData(signatureDataUrl)}
               />
             </div>
 
@@ -449,10 +480,11 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
             <div className="pt-3 border-t border-slate-100 flex gap-3">
               <button
                 type="submit"
-                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                disabled={isSubmittingPOD}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Valider et Enregistrer la Preuve de Livraison</span>
+                <span>{isSubmittingPOD ? 'Enregistrement…' : 'Valider et Enregistrer la Preuve de Livraison'}</span>
               </button>
             </div>
           </form>
@@ -807,8 +839,11 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                   Signature Numérique Client <span className="text-rose-500">*</span>
                 </label>
                 <SignaturePad
-                  onSave={(data) => setSignatureData(data)}
-                  onClear={() => setSignatureData('')}
+                  label="Signature du client"
+                  nom={recipientName}
+                  value={signatureData}
+                  date={new Date().toISOString().split('T')[0]}
+                  onSave={(_nom, signatureDataUrl) => setSignatureData(signatureDataUrl)}
                 />
               </div>
 
@@ -851,9 +886,10 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               <div className="flex gap-2 pt-2 border-t">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
+                  disabled={isSubmittingPOD}
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
                 >
-                  Valider et Enregistrer POD
+                  {isSubmittingPOD ? 'Enregistrement…' : 'Valider et Enregistrer POD'}
                 </button>
                 <button
                   type="button"

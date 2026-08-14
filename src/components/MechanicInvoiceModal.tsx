@@ -8,13 +8,16 @@ import {
   Save,
   Truck,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
-import { SparePartItem, MechanicInvoice, formatFCFA, UserProfile } from '../types';
+import { SparePartItem, formatFCFA, UserProfile } from '../types';
+import { createInvoice } from '../lib/invoices';
+import { ApiError } from '../lib/api';
 
 interface MechanicInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveInvoice: (invoice: MechanicInvoice) => void;
+  onSaved: () => void;
   currentUser: UserProfile | null;
   initialTruck?: string;
   initialChauffeur?: string;
@@ -24,30 +27,22 @@ interface MechanicInvoiceModalProps {
 export const MechanicInvoiceModal: React.FC<MechanicInvoiceModalProps> = ({
   isOpen,
   onClose,
-  onSaveInvoice,
+  onSaved,
   currentUser,
-  initialTruck = 'AB-789-XY (Volvo FH 500)',
-  initialChauffeur = 'Jean-Marc Diallo',
+  initialTruck = '',
+  initialChauffeur = '',
   initialFaultId,
 }) => {
   const [truckImmatriculation, setTruckImmatriculation] = useState(initialTruck);
   const [chauffeurNom, setChauffeurNom] = useState(initialChauffeur);
-  const [descriptionTravaux, setDescriptionTravaux] = useState(
-    'Remplacement pièces usées, révision freinage et test sur route.'
-  );
+  const [descriptionTravaux, setDescriptionTravaux] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const [parts, setParts] = useState<SparePartItem[]>([
-    {
-      id: 'p1',
-      name: 'Jeu de plaquettes de frein poids lourd',
-      qty: 2,
-      unitPrice: 65000,
-      total: 130000,
-    },
-  ]);
+  const [parts, setParts] = useState<SparePartItem[]>([]);
 
-  const [mainOeuvreHeures, setMainOeuvreHeures] = useState<number>(3);
-  const [tauxHoraire, setTauxHoraire] = useState<number>(15000); // 15 000 FCFA/h
+  const [mainOeuvreHeures, setMainOeuvreHeures] = useState<number>(0);
+  const [tauxHoraire, setTauxHoraire] = useState<number>(0);
 
   if (!isOpen) return null;
 
@@ -88,29 +83,33 @@ export const MechanicInvoiceModal: React.FC<MechanicInvoiceModalProps> = ({
   const totalHT = totalPieces + totalMainOeuvre;
   const totalTTC = totalHT; // 0% TVA or TTC directly in FCFA
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newInvoice: MechanicInvoice = {
-      id: `FACT-${Date.now().toString().slice(-6)}`,
-      faultId: initialFaultId,
-      truckImmatriculation,
-      chauffeurNom,
-      mecanicienNom: currentUser?.name || 'Antoine Vasseur (Chef Atelier)',
-      dateIntervention: new Date().toISOString().split('T')[0],
-      descriptionTravaux,
-      parts,
-      mainOeuvreHeures,
-      tauxHoraire,
-      totalPieces,
-      totalMainOeuvre,
-      totalHT,
-      tva: 0,
-      totalTTC,
-      status: 'Transmis Administration',
-    };
-
-    onSaveInvoice(newInvoice);
-    onClose();
+    if (!truckImmatriculation.trim() || !descriptionTravaux.trim() || parts.length === 0) {
+      setSaveError('Veuillez renseigner le camion, la description et au moins une pièce.');
+      return;
+    }
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      await createInvoice({
+        faultId: initialFaultId,
+        truckImmatriculation,
+        chauffeurNom: chauffeurNom || undefined,
+        dateIntervention: new Date().toISOString().split('T')[0],
+        descriptionTravaux,
+        parts: parts.map((p) => ({ name: p.name, qty: p.qty, unitPrice: p.unitPrice })),
+        mainOeuvreHeures,
+        tauxHoraire,
+        tva: 0,
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : "Échec de l'enregistrement de la facture.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -323,6 +322,12 @@ export const MechanicInvoiceModal: React.FC<MechanicInvoiceModalProps> = ({
           </div>
 
           {/* Form Submit Footer */}
+          {saveError && (
+            <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+              {saveError}
+            </p>
+          )}
+
           <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
             <button
               type="button"
@@ -334,10 +339,11 @@ export const MechanicInvoiceModal: React.FC<MechanicInvoiceModalProps> = ({
 
             <button
               type="submit"
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              disabled={isSaving}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Valider & Transmettre Facture (FCFA)</span>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              <span>{isSaving ? 'Enregistrement…' : 'Valider & Transmettre Facture (FCFA)'}</span>
             </button>
           </div>
 

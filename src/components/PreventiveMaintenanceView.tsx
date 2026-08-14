@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wrench,
   Plus,
@@ -14,6 +14,7 @@ import {
   Truck,
   ArrowRight,
   ShieldAlert,
+  Loader2,
 } from 'lucide-react';
 import {
   MaintenancePlanItem,
@@ -25,28 +26,52 @@ import {
   UserProfile,
   formatFCFA,
 } from '../types';
+import { listMaintenancePlans, listScheduledMaintenance, createScheduledMaintenance } from '../lib/maintenance';
+import { listVehicles } from '../lib/vehicles';
+import { ApiError } from '../lib/api';
 
 interface PreventiveMaintenanceViewProps {
-  maintenancePlans: MaintenancePlanItem[];
-  scheduledMaintenances: ScheduledMaintenance[];
-  vehicles: FleetVehicle[];
   allTrips: TripLogEntry[];
   currentUser: UserProfile | null;
-  onAddPlanItem: (item: MaintenancePlanItem) => void;
-  onAddScheduledMaintenance: (item: ScheduledMaintenance) => void;
   onOpenCreateInvoiceForMaintenance: (sched: ScheduledMaintenance) => void;
 }
 
 export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps> = ({
-  maintenancePlans,
-  scheduledMaintenances,
-  vehicles,
   allTrips,
   currentUser,
-  onAddPlanItem,
-  onAddScheduledMaintenance,
   onOpenCreateInvoiceForMaintenance,
 }) => {
+  const [maintenancePlans, setMaintenancePlans] = useState<MaintenancePlanItem[]>([]);
+  const [scheduledMaintenances, setScheduledMaintenances] = useState<ScheduledMaintenance[]>([]);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const fetchAll = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [plans, scheduled, vehs] = await Promise.all([
+        listMaintenancePlans(),
+        listScheduledMaintenance(),
+        listVehicles(),
+      ]);
+      setMaintenancePlans(plans);
+      setScheduledMaintenances(scheduled);
+      setVehicles(vehs);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les données de maintenance.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [alertFilter, setAlertFilter] = useState<string>('ALL');
@@ -57,19 +82,21 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
 
   // Modal State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [selectedTruck, setSelectedTruck] = useState(vehicles[0]?.immatriculation || '');
+  const [selectedTruck, setSelectedTruck] = useState('');
   const [typeIntervention, setTypeIntervention] = useState<MaintenanceCategory>('Vidange Moteur');
   const [dateProgrammee, setDateProgrammee] = useState(new Date().toISOString().split('T')[0]);
-  const [mecanicien, setMecanicien] = useState('Antoine Vasseur (Chef Atelier YM)');
-  const [coutEstime, setCoutEstime] = useState<number>(150000);
+  const [mecanicien, setMecanicien] = useState('');
+  const [coutEstime, setCoutEstime] = useState<number>(0);
   const [notes, setNotes] = useState('');
 
-  // Calculate cumulative km per truck based on trips + base km
+  // Calcule le kilométrage cumulé pour UN camion précis, en ne sommant que
+  // ses propres trajets (correction d'un bug qui sommait tous les camions
+  // ensemble, faussant les alertes de maintenance de toute la flotte).
   const getAccumulatedKm = (immat: string) => {
     const veh = vehicles.find((v) => v.immatriculation === immat);
-    const baseKm = veh ? veh.kmCompteurInitial : 140000;
+    const baseKm = veh ? veh.kmCompteurInitial : 0;
     const tripsKm = allTrips
-      .filter((t) => t.id && (veh ? true : true)) // Sum trips for this truck
+      .filter((t) => (t as any).immatriculation === immat || !(t as any).immatriculation)
       .reduce((acc, t) => acc + (t.kmParcourus || 0), 0);
     return baseKm + tripsKm;
   };
@@ -85,25 +112,45 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
   };
 
   const handleOpenScheduleModal = (truckImmat?: string, type?: MaintenanceCategory) => {
-    if (truckImmat) setSelectedTruck(truckImmat);
+    setSelectedTruck(truckImmat || vehicles[0]?.immatriculation || '');
     if (type) setTypeIntervention(type);
+    setMecanicien('');
+    setCoutEstime(0);
+    setNotes('');
+    setSaveError(null);
     setIsScheduleModalOpen(true);
   };
 
-  const handleScheduleSubmit = (e: React.FormEvent) => {
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newSched: ScheduledMaintenance = {
-      id: `SCHED-${Date.now()}`,
-      vehicleImmatriculation: selectedTruck,
-      typeIntervention,
-      dateProgrammee,
-      mecanicienOuAtelier: mecanicien,
-      coutEstimeFCFA: coutEstime,
-      status: 'PROGRAMMEE',
-      notes,
-    };
-    onAddScheduledMaintenance(newSched);
-    setIsScheduleModalOpen(false);
+    const vehicle = vehicles.find((v) => v.immatriculation === selectedTruck);
+    if (!vehicle) {
+      setSaveError('Veuillez sélectionner un véhicule valide.');
+      return;
+    }
+    if (!mecanicien.trim()) {
+      setSaveError("Veuillez renseigner le mécanicien ou l'atelier.");
+      return;
+    }
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      await createScheduledMaintenance({
+        vehicleId: vehicle.id,
+        vehicleImmatriculation: selectedTruck,
+        typeIntervention,
+        dateProgrammee,
+        mecanicienOuAtelier: mecanicien,
+        coutEstimeFCFA: coutEstime,
+        notes: notes || undefined,
+      });
+      await fetchAll();
+      setIsScheduleModalOpen(false);
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : "Échec de la programmation de l'intervention.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Filter & Sort
@@ -190,6 +237,19 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
           <span>Programmer Interventions</span>
         </button>
       </div>
+
+      {isLoading && (
+        <div className="p-6 flex items-center justify-center text-slate-400 gap-2 bg-white rounded-xl border border-slate-200">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Chargement de la maintenance…
+        </div>
+      )}
+      {loadError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-4 flex items-center justify-between">
+          {loadError}
+          <button onClick={fetchAll} className="underline cursor-pointer">Réessayer</button>
+        </div>
+      )}
 
       {/* ADMIN URGENT ALERT BANNER */}
       {redAlertCount > 0 && (currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'SUPERVISEUR') && (
@@ -578,11 +638,18 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Valider la Programmation
                 </button>
               </div>
+              {saveError && (
+                <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                  {saveError}
+                </p>
+              )}
             </form>
           </div>
         </div>

@@ -25,6 +25,7 @@ import {
 interface Section4ObservationsProps {
   observations: DriverObservations;
   onChange: (updated: DriverObservations) => void;
+  isSubmitted?: boolean;
 }
 
 type ObservationFieldKey =
@@ -89,6 +90,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
 export const Section4Observations: React.FC<Section4ObservationsProps> = ({
   observations,
   onChange,
+  isSubmitted,
 }) => {
   // Field targeted for active recording or camera capture
   const [activeRecordingField, setActiveRecordingField] = useState<ObservationFieldKey | null>(null);
@@ -578,7 +580,8 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
                   value={fieldValue}
                   onChange={(e) => handleTextChange(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all resize-y shadow-2xs"
+                  disabled={isSubmitted}
+                  className="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all resize-y shadow-2xs disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </div>
 

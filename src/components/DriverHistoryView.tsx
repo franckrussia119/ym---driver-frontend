@@ -66,7 +66,7 @@ export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
         .concat(
           filteredPODs.map(
             (r) =>
-              `${r.id},${r.blNumber},${r.containerNumber || ''},"${r.clientName}","${r.driverName}",${r.status},${r.timestamp},"${r.recipientName}"`
+              `${r.id},${r.blNumber},${r.containerNumber || ''},"${r.clientName}","${r.driverName}",${r.status},${r.dateTime},"${r.recipientName}"`
           )
         )
         .join('\n');
@@ -257,8 +257,8 @@ export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
                           <span className="text-[10px] text-slate-400 font-mono block">{rec.truckImmatriculation}</span>
                         </td>
                         <td className="p-3">
-                          <span className="font-mono text-slate-700 block">{rec.timestamp}</span>
-                          <span className="text-[10px] text-slate-400 block truncate">{rec.gpsCoordinates}</span>
+                          <span className="font-mono text-slate-700 block">{rec.dateTime}</span>
+                          <span className="text-[10px] text-slate-400 block truncate">{rec.gpsLocation}</span>
                         </td>
                         <td className="p-3">
                           <span className="font-bold text-slate-900 block">{rec.recipientName}</span>

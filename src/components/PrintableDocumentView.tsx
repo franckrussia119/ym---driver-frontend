@@ -1,20 +1,22 @@
 import React from 'react';
 import { WeeklyReport, formatFCFA } from '../types';
 import { INITIAL_DEFECT_CATEGORIES } from '../data/defaults';
+import { ensureReportDefaults } from '../data/defaults';
 
 interface PrintableDocumentViewProps {
   report: WeeklyReport;
 }
 
-export const PrintableDocumentView: React.FC<PrintableDocumentViewProps> = ({ report }) => {
-  const driverInfo = report?.driverInfo || {};
-  const trips = report?.trips || [];
-  const tripStats = report?.tripStats || {};
-  const defects = report?.defects || {};
-  const checklist = report?.checklist || {};
-  const mechanicVerif = report?.mechanicVerif || { nomMecanicien: '', date: '' };
-  const observations = report?.observations || {};
-  const signatures = report?.signatures || {};
+export const PrintableDocumentView: React.FC<PrintableDocumentViewProps> = ({ report: rawReport }) => {
+  const report = ensureReportDefaults(rawReport);
+  const driverInfo = report.driverInfo;
+  const trips = report.trips;
+  const tripStats = report.tripStats;
+  const defects = report.defects;
+  const checklist = report.checklist;
+  const mechanicVerif = report.mechanicVerif;
+  const observations = report.observations;
+  const signatures = report.signatures;
 
   const totalKm = trips.reduce((acc, t) => acc + (Number(t.kmParcourus) || 0), 0);
   const totalFuel = trips.reduce((acc, t) => acc + (Number(t.carburantL) || 0), 0);
@@ -461,7 +463,7 @@ export const PrintableDocumentView: React.FC<PrintableDocumentViewProps> = ({ re
                   </div>
                   <div>
                     <span className="font-bold block text-slate-900">Camion Assigné :</span>
-                    <span>{report.driverInfo.immatriculation || report.driverInfo.tracteurImmat || 'Non renseigné'}</span>
+                    <span>{report.driverInfo.immatriculation || 'Non renseigné'}</span>
                   </div>
                   <div>
                     <span className="font-bold block text-slate-900">Superviseur Destinataire :</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Route,
   Search,
@@ -15,15 +15,13 @@ import {
   FileText,
   Clock,
   Droplet,
+  Loader2,
+  Save,
 } from 'lucide-react';
 import { FuelAnalysisEntry, FleetVehicle, TripLogEntry, formatFCFA } from '../types';
-
-interface RoutePlanningFuelViewProps {
-  fuelEntries: FuelAnalysisEntry[];
-  vehicles: FleetVehicle[];
-  allTrips: TripLogEntry[];
-  onAddFuelEntry: (entry: FuelAnalysisEntry) => void;
-}
+import { listFuelEntries, createFuelEntry } from '../lib/fuel';
+import { listVehicles } from '../lib/vehicles';
+import { ApiError } from '../lib/api';
 
 // Major Cameroun routes database for local routing algorithm
 const CAMEROON_ROUTES = [
@@ -34,12 +32,33 @@ const CAMEROON_ROUTES = [
   { id: 'r5', origin: 'Douala (Port Autonome)', destination: 'Garoua (Nord)', km: 1100, peagesCount: 12, peagesCostFCFA: 6000, refL100: 37.0, durationHours: 22.0 },
 ];
 
-export const RoutePlanningFuelView: React.FC<RoutePlanningFuelViewProps> = ({
-  fuelEntries,
-  vehicles,
-  allTrips,
-  onAddFuelEntry,
-}) => {
+export const RoutePlanningFuelView: React.FC = () => {
+  const [fuelEntries, setFuelEntries] = useState<FuelAnalysisEntry[]>([]);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLogging, setIsLogging] = useState(false);
+  const [logError, setLogError] = useState<string | null>(null);
+  const [logSuccess, setLogSuccess] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [entries, vehs] = await Promise.all([listFuelEntries(), listVehicles()]);
+      setFuelEntries(entries);
+      setVehicles(vehs);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les données carburant.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [anomalyOnly, setAnomalyOnly] = useState(false);
 
@@ -49,9 +68,10 @@ export const RoutePlanningFuelView: React.FC<RoutePlanningFuelViewProps> = ({
 
   // ROUTING ALGORITHM SIMULATOR STATE
   const [selectedRouteId, setSelectedRouteId] = useState(CAMEROON_ROUTES[0].id);
-  const [selectedTruckImmat, setSelectedTruckImmat] = useState(vehicles[0]?.immatriculation || '');
+  const [selectedTruckImmat, setSelectedTruckImmat] = useState('');
   const [cargoWeightTons, setCargoWeightTons] = useState<number>(30);
   const [dieselPriceFCFA, setDieselPriceFCFA] = useState<number>(840); // 840 FCFA / Liter
+  const [chauffeurNomForLog, setChauffeurNomForLog] = useState('');
 
   // Computed Routing Result
   const routeObj = CAMEROON_ROUTES.find((r) => r.id === selectedRouteId) || CAMEROON_ROUTES[0];
@@ -63,6 +83,33 @@ export const RoutePlanningFuelView: React.FC<RoutePlanningFuelViewProps> = ({
   const estimatedFuelLiters = Math.round((routeObj.km * weightAdjustedConso) / 100);
   const estimatedFuelCostFCFA = estimatedFuelLiters * dieselPriceFCFA;
   const totalTripEstimateFCFA = estimatedFuelCostFCFA + routeObj.peagesCostFCFA;
+
+  const handleLogEntry = async () => {
+    if (!truckObj) {
+      setLogError('Veuillez sélectionner un camion.');
+      return;
+    }
+    setLogError(null);
+    setLogSuccess(false);
+    setIsLogging(true);
+    try {
+      await createFuelEntry({
+        date: new Date().toISOString().split('T')[0],
+        truckImmatriculation: truckObj.immatriculation,
+        chauffeurNom: chauffeurNomForLog || truckObj.chauffeurHabituelNom || 'Non renseigné',
+        trajetLabel: `${routeObj.origin} → ${routeObj.destination}`,
+        kmParcourus: routeObj.km,
+        carburantConsommeL: estimatedFuelLiters,
+      });
+      await fetchAll();
+      setLogSuccess(true);
+      setTimeout(() => setLogSuccess(false), 3000);
+    } catch (err) {
+      setLogError(err instanceof ApiError ? err.message : "Échec de l'enregistrement du relevé.");
+    } finally {
+      setIsLogging(false);
+    }
+  };
 
   // Filter & Sort Analysis Table
   const filteredEntries = fuelEntries.filter((e) => {
@@ -140,6 +187,19 @@ export const RoutePlanningFuelView: React.FC<RoutePlanningFuelViewProps> = ({
           </p>
         </div>
       </div>
+
+      {isLoading && (
+        <div className="p-6 flex items-center justify-center text-slate-400 gap-2 bg-white rounded-xl border border-slate-200">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Chargement de l'analyse carburant…
+        </div>
+      )}
+      {loadError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-4 flex items-center justify-between">
+          {loadError}
+          <button onClick={fetchAll} className="underline cursor-pointer">Réessayer</button>
+        </div>
+      )}
 
       {/* MODULE 1: ROUTING ALGORITHM CALCULATOR */}
       <div className="bg-slate-900 text-white rounded-2xl p-5 border border-slate-800 shadow-md space-y-4">
@@ -236,6 +296,40 @@ export const RoutePlanningFuelView: React.FC<RoutePlanningFuelViewProps> = ({
             <span className="text-base font-bold text-white font-mono">{formatFCFA(totalTripEstimateFCFA)}</span>
           </div>
         </div>
+
+        <div className="mt-4 pt-4 border-t border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+          <div className="flex-1">
+            <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">
+              Chauffeur (pour ce relevé)
+            </label>
+            <input
+              type="text"
+              value={chauffeurNomForLog}
+              onChange={(e) => setChauffeurNomForLog(e.target.value)}
+              placeholder={truckObj?.chauffeurHabituelNom || 'Nom du chauffeur'}
+              className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleLogEntry}
+            disabled={isLogging || !truckObj}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            {isLogging ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <span>Enregistrer ce relevé réel</span>
+          </button>
+        </div>
+        {logError && (
+          <p className="mt-2 text-xs text-rose-300 font-semibold bg-rose-950/40 border border-rose-900/60 rounded-lg px-3 py-2">
+            {logError}
+          </p>
+        )}
+        {logSuccess && (
+          <p className="mt-2 text-xs text-emerald-300 font-semibold bg-emerald-950/40 border border-emerald-900/60 rounded-lg px-3 py-2">
+            ✓ Relevé enregistré dans la base de données.
+          </p>
+        )}
       </div>
 
       {/* KPI Cards for Fuel Analysis */}

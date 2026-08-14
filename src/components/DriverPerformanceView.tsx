@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Star,
   Award,
@@ -13,18 +13,57 @@ import {
   AlertTriangle,
   Smile,
   Zap,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { DriverPerformanceScore, UserProfile } from '../types';
+import { listDriverScores, recomputeDriverScores } from '../lib/fuel';
+import { ApiError } from '../lib/api';
 
 interface DriverPerformanceViewProps {
-  scores: DriverPerformanceScore[];
   driversList: UserProfile[];
 }
 
 export const DriverPerformanceView: React.FC<DriverPerformanceViewProps> = ({
-  scores,
   driversList,
 }) => {
+  const [scores, setScores] = useState<DriverPerformanceScore[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isRecomputing, setIsRecomputing] = useState(false);
+  const [recomputeError, setRecomputeError] = useState<string | null>(null);
+
+  const fetchScores = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const list = await listDriverScores();
+      setScores(list);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les scores.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchScores();
+  }, [fetchScores]);
+
+  const handleRecompute = async () => {
+    setRecomputeError(null);
+    setIsRecomputing(true);
+    try {
+      const periode = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+      await recomputeDriverScores(periode);
+      await fetchScores();
+    } catch (err) {
+      setRecomputeError(err instanceof ApiError ? err.message : 'Échec du recalcul des scores.');
+    } finally {
+      setIsRecomputing(false);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
 
   // Sort
@@ -98,7 +137,40 @@ export const DriverPerformanceView: React.FC<DriverPerformanceViewProps> = ({
             Score global multicritères (ponctualité, éco-conduite, absence de pannes/accidents, avis clients).
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={handleRecompute}
+          disabled={isRecomputing}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+        >
+          {isRecomputing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          <span>Recalculer les scores (mois en cours)</span>
+        </button>
       </div>
+
+      {isLoading && (
+        <div className="p-6 flex items-center justify-center text-slate-400 gap-2 bg-white rounded-xl border border-slate-200">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Chargement des scores…
+        </div>
+      )}
+      {loadError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-4 flex items-center justify-between">
+          {loadError}
+          <button onClick={fetchScores} className="underline cursor-pointer">Réessayer</button>
+        </div>
+      )}
+      {recomputeError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-4">
+          {recomputeError}
+        </div>
+      )}
+      {!isLoading && scores.length === 0 && !loadError && (
+        <div className="p-10 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">
+          Aucun score calculé pour le moment. Cliquez sur « Recalculer les scores » pour générer le classement à partir des données réelles (rapports, pannes, carburant, avis clients).
+        </div>
+      )}
 
       {/* TOP 3 PODIUM CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

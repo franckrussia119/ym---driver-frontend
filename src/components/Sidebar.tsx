@@ -51,6 +51,7 @@ export type SidebarTab =
   | 'container_cautions' // Suivi Cautions Conteneurs
   | 'route_planning_fuel' // Route planning & Fuel
   | 'driver_performance' // Performance Chauffeurs
+  | 'driver_analysis' // Analyse détaillée par chauffeur (nouveau)
   | 'driver_history'; // Historique Chauffeur (POD, Rapports, Avis)
 
 
@@ -353,6 +354,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="flex items-center space-x-2">
                     <Star className="w-3.5 h-3.5 text-amber-400" />
                     <span>Score & Performance</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('driver_analysis');
+                    setIsOpenMobile(false);
+                  }}
+                  className={navClass('driver_analysis')}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Analyse par Chauffeur</span>
                   </div>
                 </button>
               </div>

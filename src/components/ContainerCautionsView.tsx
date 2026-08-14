@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Plus,
@@ -15,22 +15,39 @@ import {
   Ship,
   Truck,
   Edit,
+  Loader2,
 } from 'lucide-react';
 import { ContainerCaution, CautionStatus, formatFCFA, FleetVehicle } from '../types';
+import { listCautions, createCaution, updateCaution } from '../lib/cautions';
+import { listVehicles } from '../lib/vehicles';
+import { ApiError } from '../lib/api';
 
-interface ContainerCautionsViewProps {
-  cautions: ContainerCaution[];
-  onAddCaution: (caution: ContainerCaution) => void;
-  onUpdateCaution: (caution: ContainerCaution) => void;
-  vehicles: FleetVehicle[];
-}
+export const ContainerCautionsView: React.FC = () => {
+  const [cautions, setCautions] = useState<ContainerCaution[]>([]);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
-  cautions,
-  onAddCaution,
-  onUpdateCaution,
-  vehicles,
-}) => {
+  const fetchAll = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [c, v] = await Promise.all([listCautions(), listVehicles()]);
+      setCautions(c);
+      setVehicles(v);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les cautions.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -44,13 +61,13 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
 
   // Form
   const [noConteneurBL, setNoConteneurBL] = useState('');
-  const [ligneMaritime, setLigneMaritime] = useState('MSC (Mediterranean Shipping Co)');
+  const [ligneMaritime, setLigneMaritime] = useState('');
   const [clientNom, setClientNom] = useState('');
-  const [truckImmat, setTruckImmat] = useState(vehicles[0]?.immatriculation || '');
-  const [chauffeurNom, setChauffeurNom] = useState('Jean-Marc Diallo');
-  const [montantCaution, setMontantCaution] = useState<number>(350000);
-  const [fraisJournalier, setFraisJournalier] = useState<number>(15000);
-  const [depotDest, setDepotDest] = useState('Dépôt 3B Douala Port');
+  const [truckImmat, setTruckImmat] = useState('');
+  const [chauffeurNom, setChauffeurNom] = useState('');
+  const [montantCaution, setMontantCaution] = useState<number>(0);
+  const [fraisJournalier, setFraisJournalier] = useState<number>(0);
+  const [depotDest, setDepotDest] = useState('');
   const [dateDepot, setDateDepot] = useState(new Date().toISOString().split('T')[0]);
   const [dateLimite, setDateLimite] = useState('');
   const [status, setStatus] = useState<CautionStatus>('En cours');
@@ -60,13 +77,13 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
   const handleOpenCreate = () => {
     setEditingCaution(null);
     setNoConteneurBL('');
-    setLigneMaritime('MSC (Mediterranean Shipping Co)');
+    setLigneMaritime('');
     setClientNom('');
     setTruckImmat(vehicles[0]?.immatriculation || '');
-    setChauffeurNom('Jean-Marc Diallo');
-    setMontantCaution(350000);
-    setFraisJournalier(15000);
-    setDepotDest('Dépôt 3B Douala Port');
+    setChauffeurNom('');
+    setMontantCaution(0);
+    setFraisJournalier(0);
+    setDepotDest('');
     setDateDepot(new Date().toISOString().split('T')[0]);
 
     // set date limit 7 days ahead
@@ -77,6 +94,7 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
     setStatus('En cours');
     setPenalite(0);
     setNotes('');
+    setSaveError(null);
     setIsModalOpen(true);
   };
 
@@ -95,31 +113,44 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
     setStatus(c.status);
     setPenalite(c.montantPenaliteFCFA || 0);
     setNotes(c.notes || '');
+    setSaveError(null);
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const item: ContainerCaution = {
-      id: editingCaution ? editingCaution.id : `CAUT-${Date.now()}`,
-      noConteneurBL,
-      ligneMaritime,
-      clientNom,
-      truckImmatriculation: truckImmat,
-      chauffeurNom,
-      montantCautionFCFA: montantCaution,
-      fraisJournalierRetardFCFA: fraisJournalier,
-      depotDestination: depotDest,
-      dateDepot,
-      dateLimiteRetour: dateLimite,
-      status,
-      montantPenaliteFCFA: penalite > 0 ? penalite : undefined,
-      notes,
-    };
-
-    if (editingCaution) onUpdateCaution(item);
-    else onAddCaution(item);
-    setIsModalOpen(false);
+    if (!noConteneurBL.trim() || !clientNom.trim() || !ligneMaritime.trim()) {
+      setSaveError('Veuillez renseigner le N° conteneur, le client et la ligne maritime.');
+      return;
+    }
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      const payload = {
+        noConteneurBL,
+        ligneMaritime,
+        clientNom,
+        truckImmatriculation: truckImmat,
+        chauffeurNom,
+        montantCautionFCFA: montantCaution,
+        fraisJournalierRetardFCFA: fraisJournalier,
+        depotDestination: depotDest,
+        dateDepot,
+        dateLimiteRetour: dateLimite,
+        notes: notes || undefined,
+      };
+      if (editingCaution) {
+        await updateCaution(editingCaution.id, { ...payload, status, montantPenaliteFCFA: penalite > 0 ? penalite : undefined });
+      } else {
+        await createCaution(payload);
+      }
+      await fetchAll();
+      setIsModalOpen(false);
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : "Échec de l'enregistrement de la caution.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Filter & Sort
@@ -220,6 +251,19 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
           <span>Enregistrer une Caution</span>
         </button>
       </div>
+
+      {isLoading && (
+        <div className="p-6 flex items-center justify-center text-slate-400 gap-2 bg-white rounded-xl border border-slate-200">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Chargement des cautions…
+        </div>
+      )}
+      {loadError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-4 flex items-center justify-between">
+          {loadError}
+          <button onClick={fetchAll} className="underline cursor-pointer">Réessayer</button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -609,11 +653,18 @@ export const ContainerCautionsView: React.FC<ContainerCautionsViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Valider
                 </button>
               </div>
+              {saveError && (
+                <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                  {saveError}
+                </p>
+              )}
             </form>
           </div>
         </div>

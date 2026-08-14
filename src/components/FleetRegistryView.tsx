@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Truck,
   Plus,
@@ -19,22 +19,42 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from 'lucide-react';
 import { FleetVehicle, AdminDocument, VehicleStatus, UserProfile } from '../types';
+import { listVehicles, createVehicle, updateVehicle, addVehicleDocument } from '../lib/vehicles';
+import { ApiError } from '../lib/api';
 
 interface FleetRegistryViewProps {
-  vehicles: FleetVehicle[];
-  onAddVehicle: (vehicle: FleetVehicle) => void;
-  onUpdateVehicle: (vehicle: FleetVehicle) => void;
   driversList: UserProfile[];
 }
 
 export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
-  vehicles,
-  onAddVehicle,
-  onUpdateVehicle,
   driversList,
 }) => {
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const fetchVehicles = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const list = await listVehicles();
+      setVehicles(list);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger la flotte.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, [fetchVehicles]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [docAlertFilter, setDocAlertFilter] = useState<string>('ALL');
@@ -51,13 +71,13 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
   // Vehicle Form State
   const [immatriculation, setImmatriculation] = useState('');
   const [marqueModele, setMarqueModele] = useState('');
-  const [annee, setAnnee] = useState<number>(2023);
-  const [capaciteTonnage, setCapaciteTonnage] = useState<number>(40);
+  const [annee, setAnnee] = useState<number>(new Date().getFullYear());
+  const [capaciteTonnage, setCapaciteTonnage] = useState<number>(0);
   const [noRemorque, setNoRemorque] = useState('');
   const [chauffeurNom, setChauffeurNom] = useState('');
   const [statut, setStatut] = useState<VehicleStatus>('En service');
-  const [kmCompteur, setKmCompteur] = useState<number>(150000);
-  const [consoRef, setConsoRef] = useState<number>(35.0);
+  const [kmCompteur, setKmCompteur] = useState<number>(0);
+  const [consoRef, setConsoRef] = useState<number>(0);
   const [photoUrl, setPhotoUrl] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -68,21 +88,24 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
   const [docExpiration, setDocExpiration] = useState('');
   const [docPhoto, setDocPhoto] = useState('');
   const [tempDocs, setTempDocs] = useState<AdminDocument[]>([]);
+  const [pendingNewDocs, setPendingNewDocs] = useState<AdminDocument[]>([]);
 
   const handleOpenCreate = () => {
     setEditingVehicle(null);
     setImmatriculation('');
     setMarqueModele('');
-    setAnnee(2023);
-    setCapaciteTonnage(40);
+    setAnnee(new Date().getFullYear());
+    setCapaciteTonnage(0);
     setNoRemorque('');
     setChauffeurNom('');
     setStatut('En service');
-    setKmCompteur(120000);
-    setConsoRef(35.0);
+    setKmCompteur(0);
+    setConsoRef(0);
     setPhotoUrl('');
     setNotes('');
     setTempDocs([]);
+    setPendingNewDocs([]);
+    setSaveError(null);
     setIsModalOpen(true);
   };
 
@@ -100,6 +123,8 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
     setPhotoUrl(v.photoUrl || '');
     setNotes(v.notesInterne || '');
     setTempDocs(v.documents || []);
+    setPendingNewDocs([]);
+    setSaveError(null);
     setIsModalOpen(true);
   };
 
@@ -115,6 +140,7 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
       status: calculateDocStatus(docExpiration),
     };
     setTempDocs([...tempDocs, newDoc]);
+    setPendingNewDocs([...pendingNewDocs, newDoc]);
     setDocNum('');
     setDocPhoto('');
   };
@@ -140,30 +166,50 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const vehicleData: FleetVehicle = {
-      id: editingVehicle ? editingVehicle.id : `veh_${Date.now()}`,
-      immatriculation,
-      marqueModele,
-      annee,
-      capaciteTonnage,
-      noRemorqueAssociee: noRemorque || undefined,
-      photoUrl: photoUrl || undefined,
-      chauffeurHabituelNom: chauffeurNom || undefined,
-      statut,
-      kmCompteurInitial: kmCompteur,
-      consommationReferenceL100: consoRef,
-      documents: tempDocs,
-      notesInterne: notes,
-    };
-
-    if (editingVehicle) {
-      onUpdateVehicle(vehicleData);
-    } else {
-      onAddVehicle(vehicleData);
+    if (!immatriculation.trim() || !marqueModele.trim()) {
+      setSaveError("Veuillez renseigner l'immatriculation et le modèle.");
+      return;
     }
-    setIsModalOpen(false);
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      const vehiclePayload = {
+        immatriculation,
+        marqueModele,
+        annee,
+        capaciteTonnage,
+        noRemorqueAssociee: noRemorque || undefined,
+        photoUrl: photoUrl || undefined,
+        chauffeurHabituelNom: chauffeurNom || undefined,
+        statut,
+        kmCompteurInitial: kmCompteur,
+        consommationReferenceL100: consoRef,
+        notesInterne: notes || undefined,
+      };
+
+      const saved = editingVehicle
+        ? await updateVehicle(editingVehicle.id, vehiclePayload)
+        : await createVehicle(vehiclePayload);
+
+      for (const doc of pendingNewDocs) {
+        await addVehicleDocument(saved.id, {
+          type: doc.type,
+          numeroDoc: doc.numeroDoc,
+          dateEmission: doc.dateEmission,
+          dateExpiration: doc.dateExpiration,
+          photoScanUrl: doc.photoScanUrl,
+        });
+      }
+
+      await fetchVehicles();
+      setIsModalOpen(false);
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : "Échec de l'enregistrement du véhicule.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Filter & Sort Logic
@@ -260,6 +306,19 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
           <span>Ajouter un Véhicule</span>
         </button>
       </div>
+
+      {isLoading && (
+        <div className="p-6 flex items-center justify-center text-slate-400 gap-2 bg-white rounded-xl border border-slate-200">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Chargement de la flotte…
+        </div>
+      )}
+      {loadError && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-4 flex items-center justify-between">
+          {loadError}
+          <button onClick={fetchVehicles} className="underline cursor-pointer">Réessayer</button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -761,11 +820,18 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   {editingVehicle ? 'Mettre à jour' : 'Enregistrer le Camion'}
                 </button>
               </div>
+              {saveError && (
+                <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                  {saveError}
+                </p>
+              )}
             </form>
           </div>
         </div>

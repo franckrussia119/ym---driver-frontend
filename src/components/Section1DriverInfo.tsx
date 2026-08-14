@@ -5,9 +5,10 @@ import { User, Truck, Calendar, Tag, Lock, ShieldCheck } from 'lucide-react';
 interface Section1DriverInfoProps {
   driverInfo: DriverInfo;
   onChange: (updated: DriverInfo) => void;
+  isSubmitted?: boolean;
 }
 
-export const Section1DriverInfo: React.FC<Section1DriverInfoProps> = ({ driverInfo, onChange }) => {
+export const Section1DriverInfo: React.FC<Section1DriverInfoProps> = ({ driverInfo, onChange, isSubmitted }) => {
   const handleChange = (field: keyof DriverInfo, value: string) => {
     onChange({
       ...driverInfo,
@@ -41,6 +42,7 @@ export const Section1DriverInfo: React.FC<Section1DriverInfoProps> = ({ driverIn
             type="date"
             value={driverInfo.semaineDu}
             onChange={(e) => handleChange('semaineDu', e.target.value)}
+            disabled={isSubmitted}
             className="bg-slate-900 text-white px-1.5 py-0.5 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-[11px] sm:text-xs font-mono"
           />
           <span className="text-slate-400 font-medium">au</span>
@@ -48,6 +50,7 @@ export const Section1DriverInfo: React.FC<Section1DriverInfoProps> = ({ driverIn
             type="date"
             value={driverInfo.semaineAu}
             onChange={(e) => handleChange('semaineAu', e.target.value)}
+            disabled={isSubmitted}
             className="bg-slate-900 text-white px-1.5 py-0.5 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-[11px] sm:text-xs font-mono"
           />
         </div>

@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
-import { FaultDeclaration, UserProfile } from '../types';
+import { UserProfile } from '../types';
 import { AlertTriangle, Send, X, ShieldAlert, Truck, MapPin, Wrench } from 'lucide-react';
+
+export interface FaultFormInput {
+  immatriculation: string;
+  niveauUrgence: 'Faible' | 'Moyenne' | 'Élevée / Immobilisation';
+  categorie: string;
+  description: string;
+  localisation: string;
+}
 
 interface FaultDeclarationModalProps {
   currentUser: UserProfile;
   isOpen: boolean;
   onClose: () => void;
-  onSubmitFault: (fault: FaultDeclaration) => void;
+  onSubmitFault: (fault: FaultFormInput) => void;
+  isSubmitting?: boolean;
 }
 
 export const FaultDeclarationModal: React.FC<FaultDeclarationModalProps> = ({
@@ -14,9 +23,10 @@ export const FaultDeclarationModal: React.FC<FaultDeclarationModalProps> = ({
   isOpen,
   onClose,
   onSubmitFault,
+  isSubmitting,
 }) => {
   const [immatriculation, setImmatriculation] = useState(
-    currentUser.camionAssigne ? currentUser.camionAssigne.split(' ')[0] : 'AB-789-XY'
+    currentUser.camionAssigne ? currentUser.camionAssigne.split(' ')[0] : ''
   );
   const [niveauUrgence, setNiveauUrgence] = useState<'Faible' | 'Moyenne' | 'Élevée / Immobilisation'>('Moyenne');
   const [categorie, setCategorie] = useState('FREINS');
@@ -32,21 +42,13 @@ export const FaultDeclarationModal: React.FC<FaultDeclarationModalProps> = ({
       return;
     }
 
-    const newFault: FaultDeclaration = {
-      id: `PANNE-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
-      dateSignalement: new Date().toISOString().split('T')[0],
-      chauffeurId: currentUser.id,
-      chauffeurNom: currentUser.name,
+    onSubmitFault({
       immatriculation,
       niveauUrgence,
       categorie,
       description,
       localisation: localisation || 'Sur route / Au dépôt',
-      status: 'Signalée par chauffeur',
-    };
-
-    onSubmitFault(newFault);
-    onClose();
+    });
   };
 
   return (
@@ -169,10 +171,11 @@ export const FaultDeclarationModal: React.FC<FaultDeclarationModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow flex items-center space-x-2 transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className="px-5 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs shadow flex items-center space-x-2 transition-all cursor-pointer"
             >
               <Send className="w-4 h-4" />
-              <span>Envoyer la Déclaration</span>
+              <span>{isSubmitting ? 'Envoi en cours…' : 'Envoyer la Déclaration'}</span>
             </button>
           </div>
         </form>

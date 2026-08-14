@@ -37,6 +37,9 @@ import {
   getReport,
   ReportListItem,
 } from './lib/reports';
+import { listFaults, createFault, advanceFault } from './lib/faults';
+import { listInvoices } from './lib/invoices';
+import { FaultFormInput } from './components/FaultDeclarationModal';
 import { Header } from './components/Header';
 import { Sidebar, SidebarTab } from './components/Sidebar';
 import { RoutesDispatchView } from './components/RoutesDispatchView';
@@ -66,24 +69,14 @@ import { PreventiveMaintenanceView } from './components/PreventiveMaintenanceVie
 import { ContainerCautionsView } from './components/ContainerCautionsView';
 import { RoutePlanningFuelView } from './components/RoutePlanningFuelView';
 import { DriverPerformanceView } from './components/DriverPerformanceView';
+import { DriverAnalysisView } from './components/DriverAnalysisView';
 import { ProofOfDeliveryView } from './components/ProofOfDeliveryView';
 import { CustomerFeedbackView } from './components/CustomerFeedbackView';
 
 import { CheckCircle2, AlertTriangle, Wrench, ShieldCheck, Truck, Users, Lock, FileText } from 'lucide-react';
 
 const STORAGE_KEY_CURRENT = 'ym_transit_current_report_v3';
-const STORAGE_KEY_HISTORY = 'ym_transit_history_v3';
-const STORAGE_KEY_FAULTS = 'ym_transit_faults_v3';
-const STORAGE_KEY_INVOICES = 'ym_transit_invoices_v3';
 const STORAGE_KEY_USERS_LIST = 'ym_transit_users_list_v3';
-
-// Storage keys for 5 new modules
-const STORAGE_KEY_FLEET = 'ym_transit_fleet_v3';
-const STORAGE_KEY_MAINT_PLANS = 'ym_transit_maint_plans_v3';
-const STORAGE_KEY_SCHED_MAINT = 'ym_transit_sched_maint_v3';
-const STORAGE_KEY_CAUTIONS = 'ym_transit_cautions_v3';
-const STORAGE_KEY_FUEL = 'ym_transit_fuel_v3';
-const STORAGE_KEY_SCORES = 'ym_transit_scores_v3';
 
 export default function App() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('routes_overview');
@@ -155,70 +148,40 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
-  const [faults, setFaults] = useState<FaultDeclaration[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_FAULTS);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
-    }
-    return DEMO_FAULTS;
-  });
+  const [faults, setFaults] = useState<FaultDeclaration[]>([]);
+  const [isSubmittingFault, setIsSubmittingFault] = useState(false);
 
-  const [invoices, setInvoices] = useState<MechanicInvoice[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_INVOICES);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
-    }
-    return DEMO_INVOICES;
-  });
+  const [invoices, setInvoices] = useState<MechanicInvoice[]>([]);
 
-  // State for 5 New Modules
-  const [vehicles, setVehicles] = useState<FleetVehicle[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_FLEET);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
+  const refreshInvoices = React.useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      const list = await listInvoices();
+      setInvoices(list);
+    } catch {
+      // silencieux : la liste reste telle quelle si le rafraîchissement échoue
     }
-    return DEMO_FLEET;
-  });
+  }, [currentUser]);
 
-  const [maintenancePlans, setMaintenancePlans] = useState<MaintenancePlanItem[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_MAINT_PLANS);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
-    }
-    return DEMO_MAINTENANCE_PLANS;
-  });
+  useEffect(() => {
+    refreshInvoices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
-  const [scheduledMaintenances, setScheduledMaintenances] = useState<ScheduledMaintenance[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_SCHED_MAINT);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
+  const refreshFaults = React.useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      const list = await listFaults();
+      setFaults(list);
+    } catch {
+      // silencieux : les pannes restent telles quelles si le rafraîchissement échoue
     }
-    return DEMO_SCHEDULED_MAINTENANCE;
-  });
+  }, [currentUser]);
 
-  const [cautions, setCautions] = useState<ContainerCaution[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_CAUTIONS);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
-    }
-    return DEMO_CAUTIONS;
-  });
-
-  const [fuelEntries, setFuelEntries] = useState<FuelAnalysisEntry[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_FUEL);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
-    }
-    return DEMO_FUEL_ANALYSIS;
-  });
-
-  const [driverScores, setDriverScores] = useState<DriverPerformanceScore[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_SCORES);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
-    }
-    return DEMO_DRIVER_SCORES;
-  });
+  useEffect(() => {
+    refreshFaults();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   const [notification, setNotification] = useState<string | null>(null);
 
@@ -230,38 +193,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_CURRENT, JSON.stringify(report));
   }, [report]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_FAULTS, JSON.stringify(faults));
-  }, [faults]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(invoices));
-  }, [invoices]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_FLEET, JSON.stringify(vehicles));
-  }, [vehicles]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_MAINT_PLANS, JSON.stringify(maintenancePlans));
-  }, [maintenancePlans]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_SCHED_MAINT, JSON.stringify(scheduledMaintenances));
-  }, [scheduledMaintenances]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_CAUTIONS, JSON.stringify(cautions));
-  }, [cautions]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_FUEL, JSON.stringify(fuelEntries));
-  }, [fuelEntries]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(driverScores));
-  }, [driverScores]);
 
   useEffect(() => {
     if (currentUser) {
@@ -395,76 +326,63 @@ export default function App() {
     }
   };
 
-  const handleAddFault = (newFault: FaultDeclaration) => {
-    const initialHistoryEntry = {
-      id: `h-${Date.now()}`,
-      timestamp: new Date().toLocaleString('fr-FR'),
-      actorName: currentUser?.name || 'Chauffeur',
-      actorRole: currentUser?.role || 'CHAUFFEUR',
-      status: 'Signalée par chauffeur' as FaultStatus,
-      comment: 'Déclaration initiale de la panne par le chauffeur.',
-    };
-
-    const faultWithHistory = {
-      ...newFault,
-      history: [initialHistoryEntry],
-    };
-
-    setFaults([faultWithHistory, ...faults]);
-    setIsDeclareFaultModalOpen(false);
-    showToast(`Panne ${newFault.id} transmise au Superviseur & Atelier.`);
-    setSidebarTab('faults_workflow');
-  };
-
-  const handleUpdateFaultStatus = (faultId: string, newStatus: FaultStatus, comment?: string) => {
-    setFaults(
-      faults.map((f) => {
-        if (f.id !== faultId) return f;
-
-        const newHistoryEntry = {
-          id: `h-${Date.now()}`,
-          timestamp: new Date().toLocaleString('fr-FR'),
-          actorName: currentUser?.name || 'Utilisateur',
-          actorRole: currentUser?.role || 'SUPERVISEUR',
-          status: newStatus,
-          comment: comment || `Mise à jour du statut vers ${newStatus}`,
-        };
-
-        return {
-          ...f,
-          status: newStatus,
-          history: [...(f.history || []), newHistoryEntry],
-          notesSuperviseur: comment || f.notesSuperviseur,
-        };
-      })
-    );
-    showToast(`Panne mise à jour : ${newStatus}`);
-  };
-
-  const handleAddInvoice = (newInvoice: MechanicInvoice) => {
-    setInvoices([newInvoice, ...invoices]);
-    if (newInvoice.faultId) {
-      handleUpdateFaultStatus(
-        newInvoice.faultId,
-        'Réparée — en attente de clôture',
-        `Facture ${newInvoice.id} enregistrée par le mécanicien.`
-      );
+  const handleAddFault = async (input: FaultFormInput) => {
+    setIsSubmittingFault(true);
+    try {
+      const created = await createFault(input);
+      await refreshFaults();
+      setIsDeclareFaultModalOpen(false);
+      showToast(`Panne enregistrée et transmise au Superviseur & Atelier.`);
+      setSidebarTab('faults_workflow');
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : "Échec de l'enregistrement de la panne.");
+    } finally {
+      setIsSubmittingFault(false);
     }
-    showToast(`Facture ${newInvoice.id} créée avec succès (${newInvoice.totalTTC} FCFA).`);
+  };
+
+  // Le statut cible réel est toujours déterminé par le serveur (jamais par
+  // le client) — targetStatus n'est utilisé ici que pour la compatibilité
+  // de signature avec FaultWorkflowView, il n'est pas envoyé à l'API.
+  const handleUpdateFaultStatus = async (faultId: string, _targetStatus: FaultStatus, comment?: string) => {
+    try {
+      await advanceFault(faultId, comment);
+      await refreshFaults();
+      showToast('Panne mise à jour avec succès.');
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Impossible de faire avancer cette panne.');
+    }
+  };
+
+  // Quand une facture est créée pour une panne, cela signale que la
+  // réparation est terminée : on fait avancer le workflow de la panne.
+  const handleInvoiceSavedForFault = async (faultId?: string) => {
+    await refreshInvoices();
+    if (faultId) {
+      try {
+        await advanceFault(faultId, 'Facture atelier enregistrée par le mécanicien.');
+        await refreshFaults();
+      } catch {
+        // La facture est déjà enregistrée ; l'avancement de la panne est
+        // une amélioration secondaire, on ne bloque pas l'utilisateur si
+        // le statut ne peut pas avancer (ex: déjà à l'étape suivante).
+      }
+    }
+    showToast('Facture enregistrée avec succès.');
     setSidebarTab('mechanic_invoices');
   };
+
 
   const handleOpenPODModalForWaypoint = (waypointName: string) => {
     setPodTargetWaypoint(waypointName);
     setIsPODModalOpen(true);
   };
 
-  // Le backend filtre déjà les rapports par chauffeur connecté (voir GET
-  // /api/reports), donc `history` ne contient déjà que ce que ce rôle doit voir.
+  // Le backend filtre déjà les rapports/pannes par chauffeur connecté (voir
+  // GET /api/reports et GET /api/faults), donc ces listes ne contiennent
+  // déjà que ce que ce rôle doit voir.
   const driverPersonalReports = history;
-  const driverPersonalFaults = faults.filter(
-    (f) => f.chauffeurId === currentUser?.id || f.chauffeurNom === currentUser?.name || currentUser?.role !== 'CHAUFFEUR'
-  );
+  const driverPersonalFaults = faults;
 
   // Restauration de session en cours : éviter le clignotement de l'écran de connexion
   if (isRestoringSession) {
@@ -512,6 +430,7 @@ export default function App() {
           isOpen={isDeclareFaultModalOpen}
           onClose={() => setIsDeclareFaultModalOpen(false)}
           onSubmitFault={handleAddFault}
+          isSubmitting={isSubmittingFault}
         />
       )}
 
@@ -523,10 +442,10 @@ export default function App() {
             setIsInvoiceModalOpen(false);
             setSelectedFaultForInvoice(null);
           }}
-          onSaveInvoice={handleAddInvoice}
+          onSaved={() => handleInvoiceSavedForFault(selectedFaultForInvoice?.id)}
           currentUser={currentUser}
-          initialTruck={selectedFaultForInvoice?.immatriculation || 'AB-789-XY (Volvo FH 500)'}
-          initialChauffeur={selectedFaultForInvoice?.chauffeurNom || 'Jean-Marc Diallo'}
+          initialTruck={selectedFaultForInvoice?.immatriculation || ''}
+          initialChauffeur={selectedFaultForInvoice?.chauffeurNom || ''}
           initialFaultId={selectedFaultForInvoice?.id}
         />
       )}
@@ -657,7 +576,14 @@ export default function App() {
                       ...report,
                       defects: {
                         ...(report.defects || {}),
-                        [id]: { ...(report.defects?.[id] || {}), ...updated },
+                        [id]: {
+                          id,
+                          category: '',
+                          name: '',
+                          constate: false,
+                          ...(report.defects?.[id] || {}),
+                          ...updated,
+                        },
                       },
                     })
                   }
@@ -778,28 +704,14 @@ export default function App() {
 
             {/* 6. REGISTRE FLOTTE & DOCUMENTS */}
             {sidebarTab === 'fleet_registry' && (
-              <FleetRegistryView
-                vehicles={vehicles}
-                onAddVehicle={(v) => setVehicles([...vehicles, v])}
-                onUpdateVehicle={(v) =>
-                  setVehicles(vehicles.map((x) => (x.id === v.id ? v : x)))
-                }
-                driversList={users}
-              />
+              <FleetRegistryView driversList={users} />
             )}
 
             {/* 7. MAINTENANCE PRÉVENTIVE */}
             {sidebarTab === 'preventive_maintenance' && (
               <PreventiveMaintenanceView
-                maintenancePlans={maintenancePlans}
-                scheduledMaintenances={scheduledMaintenances}
-                vehicles={vehicles}
                 allTrips={report.trips || []}
                 currentUser={currentUser}
-                onAddPlanItem={(p) => setMaintenancePlans([...maintenancePlans, p])}
-                onAddScheduledMaintenance={(s) =>
-                  setScheduledMaintenances([...scheduledMaintenances, s])
-                }
                 onOpenCreateInvoiceForMaintenance={(sched) => {
                   setSelectedFaultForInvoice(null);
                   setIsInvoiceModalOpen(true);
@@ -809,31 +721,18 @@ export default function App() {
             )}
 
             {/* 8. SUIVI CAUTIONS CONTENEURS */}
-            {sidebarTab === 'container_cautions' && (
-              <ContainerCautionsView
-                cautions={cautions}
-                onAddCaution={(c) => setCautions([...cautions, c])}
-                onUpdateCaution={(c) =>
-                  setCautions(cautions.map((x) => (x.id === c.id ? c : x)))
-                }
-                vehicles={vehicles}
-              />
-            )}
+            {sidebarTab === 'container_cautions' && <ContainerCautionsView />}
 
             {/* 9. OPTIMISATION ROUTE & CARBURANT */}
-            {sidebarTab === 'route_planning_fuel' && (
-              <RoutePlanningFuelView
-                fuelEntries={fuelEntries}
-                vehicles={vehicles}
-                allTrips={report.trips || []}
-                onAddFuelEntry={(e) => setFuelEntries([...fuelEntries, e])}
-              />
-            )}
+            {sidebarTab === 'route_planning_fuel' && <RoutePlanningFuelView />}
 
             {/* 10. SCORE & PERFORMANCE CHAUFFEURS */}
             {sidebarTab === 'driver_performance' && (
-              <DriverPerformanceView scores={driverScores} driversList={users} />
+              <DriverPerformanceView driversList={users} />
             )}
+
+            {/* 10b. ANALYSE DÉTAILLÉE PAR CHAUFFEUR (nouveau) */}
+            {sidebarTab === 'driver_analysis' && <DriverAnalysisView />}
 
             {/* 11. PREUVE DE LIVRAISON (POD) VIEW */}
             {sidebarTab === 'proof_of_delivery' && (
@@ -882,7 +781,7 @@ export default function App() {
           setActiveTab={(tab) => setSidebarTab(tab)}
           currentUser={currentUser}
           onOpenDeclareFault={() => setIsDeclareFaultModalOpen(true)}
-          faultsCount={faults.filter((f) => f.status !== 'CORRIGE').length}
+          faultsCount={faults.filter((f) => f.status !== 'Clôturée par superviseur').length}
         />
       </div>
     </div>

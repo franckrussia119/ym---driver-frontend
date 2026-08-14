@@ -17,7 +17,7 @@ export const DriverQuickAppDashboard: React.FC<DriverQuickAppDashboardProps> = (
 }) => {
   const driverPhoto = currentUser.driverPhotoUrl || report.driverInfo.driverPhotoUrl;
   const truckPhoto = currentUser.truckPhotoUrl || report.driverInfo.truckPhotoUrl;
-  const immat = report.driverInfo.immatriculation || report.driverInfo.tracteurImmat || currentUser.camionAssigne || 'AB-789-XY';
+  const immat = report.driverInfo.immatriculation || currentUser.camionAssigne || '';
 
   return (
     <div className="mb-3 sm:mb-5 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white rounded-xl p-3 sm:p-4 shadow-lg border border-blue-900/40 relative overflow-hidden">

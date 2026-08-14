@@ -122,8 +122,11 @@ export const ProofOfDeliveryModal: React.FC<ProofOfDeliveryModalProps> = ({
                 Signature numérique du destinataire <span className="text-rose-500">*</span> :
               </label>
               <SignaturePad
-                onSave={(data) => setSignatureData(data)}
-                onClear={() => setSignatureData('')}
+                label="Signature du destinataire"
+                nom={recipientName}
+                value={signatureData}
+                date={new Date().toISOString().split('T')[0]}
+                onSave={(_nom, signatureDataUrl) => setSignatureData(signatureDataUrl)}
               />
               {signatureData && (
                 <span className="text-[10px] text-emerald-600 font-bold block mt-1">
