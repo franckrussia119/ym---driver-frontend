@@ -20,6 +20,7 @@ export interface DriverHistoryResponse {
     camionAssigne?: string;
     createdAt: string;
   };
+  periode: { from: string | null; to: string | null };
   summary: {
     totalRapports: number;
     rapportsSoumis: number;
@@ -33,6 +34,8 @@ export interface DriverHistoryResponse {
     totalCarburantL: number;
     cautionsEnRetard: number;
     anomaliesCarburant: number;
+    totalMontantRecuFCFA: number;
+    totalDistancePodKm: number;
     dernierScoreGlobalPct: number | null;
     dernierRang: number | null;
   };
@@ -55,7 +58,19 @@ export interface DriverHistoryResponse {
     description: string;
     createdAt: string;
   }>;
-  pod: Array<{ id: string; blNumber: string; containerNumber: string; clientName: string; status: string; dateTime: string; createdAt: string }>;
+  pod: Array<{
+    id: string;
+    blNumber: string;
+    containerNumber: string;
+    clientName: string;
+    status: string;
+    dateTime: string;
+    createdAt: string;
+    departurePort?: 'PAK' | 'PAD' | 'Autres';
+    departurePortAutre?: string;
+    montantRecuFCFA?: number;
+    distanceKm?: number;
+  }>;
   invoices: Array<{ id: string; dateIntervention: string; totalTTC: number; status: string; createdAt: string }>;
   cautions: Array<{ id: string; noConteneurBL: string; status: string; montantCautionFCFA: number; montantPenaliteFCFA: number | null; dateLimiteRetour: string }>;
   fuelEntries: Array<{ id: string; date: string; consommationReelleL100: number; consommationRefL100: number; anomalieDetectee: boolean; typeAnomalie: string | null }>;
@@ -66,6 +81,13 @@ export async function listDrivers(): Promise<DriverListItem[]> {
   return api.get<DriverListItem[]>('/api/driver-history');
 }
 
-export async function getDriverHistory(driverId: string): Promise<DriverHistoryResponse> {
-  return api.get<DriverHistoryResponse>(`/api/driver-history/${driverId}`);
+export async function getDriverHistory(
+  driverId: string,
+  range?: { from?: string; to?: string }
+): Promise<DriverHistoryResponse> {
+  const params = new URLSearchParams();
+  if (range?.from) params.set('from', range.from);
+  if (range?.to) params.set('to', range.to);
+  const qs = params.toString();
+  return api.get<DriverHistoryResponse>(`/api/driver-history/${driverId}${qs ? `?${qs}` : ''}`);
 }

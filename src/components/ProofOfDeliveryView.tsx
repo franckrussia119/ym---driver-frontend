@@ -22,9 +22,9 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { UserProfile } from '../types';
-import { SignaturePad } from './SignaturePad';
 import { listPOD, createPOD } from '../lib/pod';
 import { ApiError } from '../lib/api';
+import { CAMEROON_DESTINATIONS, getDistanceKm } from '../data/distances';
 
 export interface PODRecord {
   id: string;
@@ -38,9 +38,15 @@ export interface PODRecord {
   gpsLocation: string;
   recipientName: string;
   status: 'LIVRE_CONFORME' | 'SOUS_RESERVES' | 'REFUSE' | 'EN_COURS';
-  signatureData?: string;
+  bordereauPhotoUrl?: string;
   photoUrl?: string;
   observations?: string;
+  departurePort: 'PAK' | 'PAD' | 'Autres';
+  departurePortAutre?: string;
+  montantRecuFCFA: number;
+  distanceKm: number;
+  linkedReportId?: string;
+  linkedTripId?: string;
 }
 
 interface ProofOfDeliveryViewProps {
@@ -82,29 +88,42 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
   }, [fetchPODRecords]);
 
   // Modal Form State for New POD
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [blNumber, setBlNumber] = useState('');
   const [containerNumber, setContainerNumber] = useState('');
   const [clientName, setClientName] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [status, setStatus] = useState<PODRecord['status']>('LIVRE_CONFORME');
-  const [signatureData, setSignatureData] = useState('');
+  const [bordereauPhotoUrl, setBordereauPhotoUrl] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [observations, setObservations] = useState('');
   const [gpsLocation, setGpsLocation] = useState('');
+  const [departurePort, setDeparturePort] = useState<'PAK' | 'PAD' | 'Autres'>('PAD');
+  const [departurePortAutre, setDeparturePortAutre] = useState('');
+  const [montantRecuFCFA, setMontantRecuFCFA] = useState<number>(0);
+  const [distanceKm, setDistanceKm] = useState<number>(0);
+  const [isCustomDestination, setIsCustomDestination] = useState(false);
+
+  // Recalcule automatiquement la distance dès que la destination ou le port
+  // de départ change (sauf en saisie libre, où le chauffeur ajuste lui-même).
+  React.useEffect(() => {
+    if (isCustomDestination) return;
+    if (departurePort === 'Autres') return; // pas de distance de référence pour un départ personnalisé
+    const km = getDistanceKm(deliveryAddress, departurePort);
+    if (km !== null) setDistanceKm(km);
+  }, [deliveryAddress, departurePort, isCustomDestination]);
 
   // Capture la position GPS réelle du navigateur à l'ouverture du
   // formulaire de création (best-effort : n'empêche jamais la création si
   // refusée ou indisponible).
   React.useEffect(() => {
-    if (!isModalOpen || !navigator.geolocation) return;
+    if (activeSubTab !== 'CREATE' || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setGpsLocation(`Lat ${pos.coords.latitude.toFixed(4)}, Long ${pos.coords.longitude.toFixed(4)}`),
       () => setGpsLocation(''),
       { timeout: 8000 }
     );
-  }, [isModalOpen]);
+  }, [activeSubTab]);
 
   // Filtered Records
   const filteredRecords = podRecords.filter((rec) => {
@@ -117,10 +136,23 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
     return matchesSearch && matchesStatus;
   });
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const bordereauInputRef = React.useRef<HTMLInputElement>(null);
+  const colisInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCaptureBordereau = () => {
+    bordereauInputRef.current?.click();
+  };
+  const handleBordereauSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setBordereauPhotoUrl(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const handleCapturePhoto = () => {
-    fileInputRef.current?.click();
+    colisInputRef.current?.click();
   };
 
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,8 +170,16 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
       alert('Veuillez remplir le N° BL, le nom du client et du récepteur.');
       return;
     }
-    if (!signatureData) {
-      alert('Veuillez capturer la signature numérique du destinataire.');
+    if (!deliveryAddress.trim()) {
+      alert('Veuillez indiquer la destination.');
+      return;
+    }
+    if (!bordereauPhotoUrl) {
+      alert('Veuillez prendre une photo du bordereau de livraison.');
+      return;
+    }
+    if (departurePort === 'Autres' && !departurePortAutre.trim()) {
+      alert('Veuillez préciser le lieu de départ.');
       return;
     }
 
@@ -149,20 +189,23 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
         blNumber,
         containerNumber: containerNumber || 'N/A',
         clientName,
-        deliveryAddress: deliveryAddress || '',
+        deliveryAddress,
         driverName: currentUser?.name || 'Chauffeur YM-TRANSIT',
         truckImmatriculation: currentUser?.camionAssigne || 'Non renseigné',
-        dateTime: `${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
+        dateTime: `${new Date().toISOString().split('T')[0]} ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
         gpsLocation: gpsLocation || 'Non disponible',
         recipientName,
         status,
-        signatureData,
+        bordereauPhotoUrl,
         photoUrl: photoUrl || undefined,
         observations,
+        departurePort,
+        departurePortAutre: departurePort === 'Autres' ? departurePortAutre : undefined,
+        montantRecuFCFA,
+        distanceKm,
       });
 
       await fetchPODRecords();
-      setIsModalOpen(false);
 
       // Reset Form
       setBlNumber('');
@@ -171,14 +214,21 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
       setDeliveryAddress('');
       setRecipientName('');
       setStatus('LIVRE_CONFORME');
-      setSignatureData('');
+      setBordereauPhotoUrl(null);
       setPhotoUrl(null);
       setObservations('');
       setGpsLocation('');
+      setDeparturePort('PAD');
+      setDeparturePortAutre('');
+      setMontantRecuFCFA(0);
+      setDistanceKm(0);
+      setIsCustomDestination(false);
 
       // Switch view to history automatically
       setActiveSubTab('HISTORY');
-      alert('Preuve de livraison (POD) créée et enregistrée avec succès dans la base de données !');
+      alert(
+        'Preuve de livraison créée avec succès !\n\nCe trajet a été ajouté automatiquement à votre rapport hebdomadaire en cours.'
+      );
     } catch (err) {
       alert(err instanceof ApiError ? err.message : "Échec de l'enregistrement de la preuve de livraison.");
     } finally {
@@ -212,7 +262,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
   return (
     <div className="space-y-6">
       <input
-        ref={fileInputRef}
+        ref={colisInputRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -376,6 +426,99 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Port de Départ <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={departurePort}
+                  onChange={(e) => setDeparturePort(e.target.value as 'PAK' | 'PAD' | 'Autres')}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                >
+                  <option value="PAD">PAD — Port Autonome de Douala</option>
+                  <option value="PAK">PAK — Port Autonome de Kribi</option>
+                  <option value="Autres">Autre lieu de départ</option>
+                </select>
+                {departurePort === 'Autres' && (
+                  <input
+                    type="text"
+                    value={departurePortAutre}
+                    onChange={(e) => setDeparturePortAutre(e.target.value)}
+                    placeholder="Précisez le lieu de départ"
+                    className="w-full mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Destination <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={isCustomDestination ? '__CUSTOM__' : deliveryAddress}
+                  onChange={(e) => {
+                    if (e.target.value === '__CUSTOM__') {
+                      setIsCustomDestination(true);
+                      setDeliveryAddress('');
+                      setDistanceKm(0);
+                    } else {
+                      setIsCustomDestination(false);
+                      setDeliveryAddress(e.target.value);
+                    }
+                  }}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                >
+                  <option value="">— Choisir une destination —</option>
+                  {CAMEROON_DESTINATIONS.map((d) => (
+                    <option key={d.label} value={d.label}>{d.label}</option>
+                  ))}
+                  <option value="__CUSTOM__">Autre destination (saisie libre)</option>
+                </select>
+                {isCustomDestination && (
+                  <input
+                    type="text"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder="Ex: Zone Industrielle, Bonabéri Douala"
+                    className="w-full mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Distance Estimée (km)
+                  {!isCustomDestination && departurePort !== 'Autres' && deliveryAddress && (
+                    <span className="text-emerald-600 font-normal"> — calculée automatiquement</span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={distanceKm}
+                  onChange={(e) => setDistanceKm(Number(e.target.value))}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Montant Perçu pour ce Transport (FCFA) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={montantRecuFCFA}
+                  onChange={(e) => setMontantRecuFCFA(Number(e.target.value))}
+                  placeholder="Ex: 150000"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="font-bold text-slate-700 block mb-1">
                 Nom du Client & Entreprise <span className="text-rose-500">*</span>
@@ -387,17 +530,6 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="Ex: CIMENCAM Bonabéri, Douala"
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">Adresse Précise de Déchargement</label>
-              <input
-                type="text"
-                value={deliveryAddress}
-                onChange={(e) => setDeliveryAddress(e.target.value)}
-                placeholder="Ex: Zone Industrielle, Bonabéri Douala"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900"
               />
             </div>
 
@@ -430,15 +562,37 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
 
             <div>
               <label className="font-bold text-slate-700 block mb-1">
-                Signature Numérique du Récepteur <span className="text-rose-500">*</span>
+                Photo du Bordereau de Livraison <span className="text-rose-500">*</span>
               </label>
-              <SignaturePad
-                label="Signature du récepteur"
-                nom={recipientName}
-                value={signatureData}
-                date={new Date().toISOString().split('T')[0]}
-                onSave={(_nom, signatureDataUrl) => setSignatureData(signatureDataUrl)}
+              <input
+                ref={bordereauInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleBordereauSelected}
+                className="hidden"
               />
+              {bordereauPhotoUrl ? (
+                <div className="relative rounded-xl overflow-hidden border border-slate-200 max-h-48">
+                  <img src={bordereauPhotoUrl} alt="Bordereau" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setBordereauPhotoUrl(null)}
+                    className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-full cursor-pointer shadow-md"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCaptureBordereau}
+                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                >
+                  <Camera className="w-4 h-4 text-emerald-600" />
+                  <span>Prendre une photo du bordereau</span>
+                </button>
+              )}
             </div>
 
             <div>
@@ -594,9 +748,9 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
 
                         <td className="py-3.5 px-3">
                           <span className="font-bold text-slate-800 block">{pod.recipientName}</span>
-                          {pod.signatureData && (
+                          {pod.bordereauPhotoUrl && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-0.5">
-                              <CheckCircle2 className="w-3 h-3" /> Signature Capturée
+                              <CheckCircle2 className="w-3 h-3" /> Bordereau Capturé
                             </span>
                           )}
                         </td>
@@ -694,14 +848,29 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               </div>
 
               <div className="border-t border-slate-200 pt-2">
-                <span className="text-[10px] text-slate-400 font-bold block mb-1">Signature du Récepteur ({selectedPOD.recipientName})</span>
-                {selectedPOD.signatureData ? (
-                  <div className="bg-white p-3 rounded-lg border border-slate-300 inline-block min-w-[200px]">
-                    <img src={selectedPOD.signatureData} alt="Signature" className="h-16 object-contain" />
-                  </div>
+                <span className="text-[10px] text-slate-400 font-bold block mb-1">Bordereau de Livraison</span>
+                {selectedPOD.bordereauPhotoUrl ? (
+                  <img src={selectedPOD.bordereauPhotoUrl} alt="Bordereau de livraison" className="w-full max-h-56 object-cover rounded-lg border border-slate-300" />
                 ) : (
-                  <span className="text-slate-400 italic">Aucune signature enregistrée</span>
+                  <span className="text-slate-400 italic">Aucun bordereau enregistré</span>
                 )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-2">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block">Port de Départ</span>
+                  <p className="font-semibold text-slate-800">
+                    {selectedPOD.departurePort === 'PAK' && 'PAK — Kribi'}
+                    {selectedPOD.departurePort === 'PAD' && 'PAD — Douala'}
+                    {selectedPOD.departurePort === 'Autres' && (selectedPOD.departurePortAutre || 'Autre')}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block">Distance / Montant</span>
+                  <p className="font-semibold text-slate-800">
+                    {selectedPOD.distanceKm} km · {new Intl.NumberFormat('fr-FR').format(selectedPOD.montantRecuFCFA)} FCFA
+                  </p>
+                </div>
               </div>
 
               {selectedPOD.photoUrl && (
@@ -738,171 +907,6 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
         </div>
       )}
 
-      {/* CREATE POD MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-extrabold text-base text-slate-900">Saisie Preuve de Livraison (POD)</h3>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreatePOD} className="space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">
-                    N° Bon de Livraison (BL) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={blNumber}
-                    onChange={(e) => setBlNumber(e.target.value)}
-                    placeholder="Ex: BL-2026-904"
-                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-xs font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">N° Conteneur</label>
-                  <input
-                    type="text"
-                    value={containerNumber}
-                    onChange={(e) => setContainerNumber(e.target.value)}
-                    placeholder="Ex: MSCU-892014"
-                    className="w-full p-2.5 border border-slate-300 rounded-lg text-xs font-semibold"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  Nom du Client <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Ex: CIMENCAM Douala"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Adresse de Déchargement</label>
-                <input
-                  type="text"
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder="Ex: Zone Industrielle Bonabéri, Douala"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  Nom du Récepteur / Destinataire <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="Ex: M. Jean-Paul Mbarga"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Conformité de Livraison</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as PODRecord['status'])}
-                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs font-bold"
-                >
-                  <option value="LIVRE_CONFORME">Livré Conforme (En bon état)</option>
-                  <option value="SOUS_RESERVES">Livré Sous Réserves (Avarie / Manquant)</option>
-                  <option value="REFUSE">Livraison Refusée par le Client</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  Signature Numérique Client <span className="text-rose-500">*</span>
-                </label>
-                <SignaturePad
-                  label="Signature du client"
-                  nom={recipientName}
-                  value={signatureData}
-                  date={new Date().toISOString().split('T')[0]}
-                  onSave={(_nom, signatureDataUrl) => setSignatureData(signatureDataUrl)}
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Photo Justificative (Optionnel)</label>
-                {photoUrl ? (
-                  <div className="relative rounded-lg overflow-hidden border border-slate-300 max-h-36">
-                    <img src={photoUrl} alt="Aperçu photo" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setPhotoUrl(null)}
-                      className="absolute top-2 right-2 p-1 bg-rose-600 text-white rounded-full cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleCapturePhoto}
-                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Camera className="w-4 h-4 text-emerald-600" />
-                    <span>Capturer photo du conteneur/colis</span>
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Observations / Réserves</label>
-                <textarea
-                  rows={2}
-                  value={observations}
-                  onChange={(e) => setObservations(e.target.value)}
-                  placeholder="Remarques particulières lors du déchargement..."
-                  className="w-full p-2.5 border border-slate-300 rounded-lg text-xs"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2 border-t">
-                <button
-                  type="submit"
-                  disabled={isSubmittingPOD}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
-                >
-                  {isSubmittingPOD ? 'Enregistrement…' : 'Valider et Enregistrer POD'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl cursor-pointer"
-                >
-                  Annuler
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

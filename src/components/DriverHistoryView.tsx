@@ -262,9 +262,9 @@ export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
                         </td>
                         <td className="p-3">
                           <span className="font-bold text-slate-900 block">{rec.recipientName}</span>
-                          {rec.signatureData && (
+                          {rec.bordereauPhotoUrl && (
                             <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                              <ShieldCheck className="w-3 h-3" /> Signature Capturée
+                              <ShieldCheck className="w-3 h-3" /> Bordereau Capturé
                             </span>
                           )}
                         </td>
@@ -379,11 +379,11 @@ export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
                 </div>
               </div>
 
-              {selectedPOD.signatureData && (
+              {selectedPOD.bordereauPhotoUrl && (
                 <div>
-                  <span className="font-bold text-slate-700 block mb-1">Signature Numérique :</span>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 flex justify-center max-h-32">
-                    <img src={selectedPOD.signatureData} alt="Signature" className="max-h-28 object-contain" />
+                  <span className="font-bold text-slate-700 block mb-1">Bordereau de Livraison :</span>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 flex justify-center max-h-40">
+                    <img src={selectedPOD.bordereauPhotoUrl} alt="Bordereau de livraison" className="max-h-36 object-contain" />
                   </div>
                 </div>
               )}

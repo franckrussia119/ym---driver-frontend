@@ -1,18 +1,6 @@
 import React from 'react';
 import { UserProfile } from '../types';
-import {
-  Truck,
-  Wrench,
-  ShieldCheck,
-  ShieldAlert,
-  Smartphone,
-  Lock,
-  CheckCircle2,
-  DollarSign,
-  FileCheck2,
-  Flame,
-  KeyRound,
-} from 'lucide-react';
+import { Truck, Lock, Smartphone } from 'lucide-react';
 import { LoginForm } from './LoginForm';
 
 interface LandingPortalProps {
@@ -27,119 +15,79 @@ export const LandingPortal: React.FC<LandingPortalProps> = ({
   canInstallPWA,
 }) => {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-10 font-sans">
-      {/* Top Header Bar */}
-      <header className="max-w-7xl mx-auto w-full flex items-center justify-between pb-6 border-b border-slate-800">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-inner">
-            <Truck className="w-7 h-7" />
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-slate-950">
+      {/* Truck illustration background */}
+      <svg
+        className="absolute inset-0 w-full h-full object-cover opacity-[0.16]"
+        viewBox="0 0 1200 800"
+        preserveAspectRatio="xMidYMid slice"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect width="1200" height="800" fill="#020617" />
+        {/* Road */}
+        <rect x="0" y="620" width="1200" height="180" fill="#0f172a" />
+        <g stroke="#334155" strokeWidth="6" strokeDasharray="40 30">
+          <line x1="0" y1="705" x2="1200" y2="705" />
+        </g>
+        {/* Distant hills */}
+        <path d="M0 600 Q 200 520 400 600 T 800 600 T 1200 600 V800 H0 Z" fill="#0b1220" />
+        {/* Truck body */}
+        <g transform="translate(280,380)">
+          {/* Trailer */}
+          <rect x="0" y="0" width="520" height="200" rx="10" fill="#1e293b" stroke="#3b82f6" strokeWidth="4" />
+          <rect x="20" y="20" width="480" height="160" rx="4" fill="#0f172a" />
+          {/* Cab */}
+          <path d="M520 60 h120 a20 20 0 0 1 20 20 v120 h-140 z" fill="#1e293b" stroke="#3b82f6" strokeWidth="4" />
+          <rect x="545" y="90" width="70" height="55" rx="6" fill="#3b82f6" opacity="0.5" />
+          {/* Chassis */}
+          <rect x="-10" y="195" width="700" height="18" fill="#0f172a" />
+          {/* Wheels */}
+          <circle cx="90" cy="225" r="42" fill="#020617" stroke="#475569" strokeWidth="8" />
+          <circle cx="90" cy="225" r="16" fill="#334155" />
+          <circle cx="270" cy="225" r="42" fill="#020617" stroke="#475569" strokeWidth="8" />
+          <circle cx="270" cy="225" r="16" fill="#334155" />
+          <circle cx="600" cy="225" r="42" fill="#020617" stroke="#475569" strokeWidth="8" />
+          <circle cx="600" cy="225" r="16" fill="#334155" />
+        </g>
+      </svg>
+
+      {/* Gradient overlay for readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/80 via-slate-950/70 to-slate-950/95" />
+
+      {/* Install PWA button, top-right */}
+      {canInstallPWA && onInstallPWA && (
+        <button
+          onClick={onInstallPWA}
+          className="absolute top-5 right-5 z-10 px-3.5 py-2 bg-blue-600/90 hover:bg-blue-500 backdrop-blur-sm text-white rounded-xl text-xs font-bold shadow-lg flex items-center gap-1.5 transition-all cursor-pointer"
+        >
+          <Smartphone className="w-4 h-4" />
+          <span className="hidden sm:inline">Installer l'application</span>
+          <span className="sm:hidden">Installer</span>
+        </button>
+      )}
+
+      {/* Main login card */}
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="text-center mb-7">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-inner mb-4">
+            <Truck className="w-9 h-9" />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center space-x-2">
-              <span>YM-TRANSIT</span>
-              <span className="text-xs bg-blue-600 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">
-                PWA Mobile
-              </span>
-            </h1>
-            <p className="text-xs text-slate-400">Portail Flotte, DVIR & Maintenance Atelier (Tarification FCFA)</p>
-          </div>
+          <h1 className="text-2xl font-black tracking-tight text-white">YM-TRANSIT</h1>
+          <p className="text-xs text-slate-400 mt-1">Gestion Flotte & Logistique — Cameroun</p>
         </div>
 
-        {canInstallPWA && onInstallPWA && (
-          <button
-            onClick={onInstallPWA}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg flex items-center space-x-2 transition-all transform hover:scale-105 cursor-pointer"
-          >
-            <Smartphone className="w-4 h-4 text-blue-200" />
-            <span className="hidden sm:inline">Installer l'Application Mobile</span>
-            <span className="sm:hidden">Installer App</span>
-          </button>
-        )}
-      </header>
-
-      {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto w-full my-8 space-y-10">
-        {/* Intro Section */}
-        <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-950/80 border border-blue-700/50 text-blue-300 text-xs font-bold uppercase tracking-wider">
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span>Portail d'Accès Multi-Services YM-TRANSIT</span>
-          </div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Connectez-vous à votre espace
+        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <h2 className="text-sm font-bold text-white mb-5 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-blue-400" />
+            <span>Connexion</span>
           </h2>
-          <p className="text-sm text-slate-300">
-            Chaque collaborateur accède à son compte dédié avec gestion des droits, formulaires sécurisés et tarification en <strong className="text-emerald-400">FCFA</strong>.
-          </p>
-        </div>
-
-        {/* 4 Service Description Tiles (informational only — no direct-access shortcuts) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="rounded-2xl p-6 border bg-slate-800/40 border-slate-700/70">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 mb-4">
-              <Truck className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Chauffeur / Conducteur</h3>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Rapport hebdomadaire DVIR, saisie des trajets journaliers et déclaration directe des pannes urgentes.
-            </p>
-          </div>
-
-          <div className="rounded-2xl p-6 border bg-slate-800/40 border-slate-700/70">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400 mb-4">
-              <Wrench className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Atelier Mécanique</h3>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Réception des pannes signalées, saisie des interventions et établissement des factures de pièces en FCFA.
-            </p>
-          </div>
-
-          <div className="rounded-2xl p-6 border bg-slate-800/40 border-slate-700/70">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 mb-4">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Administration & Flotte</h3>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Contrôle des rapports scellés des chauffeurs, impression PDF des documents officiels et validation finale.
-            </p>
-          </div>
-
-          <div className="rounded-2xl p-6 border bg-slate-800/40 border-slate-700/70">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-400 mb-4">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Super Administrateur</h3>
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              Création des comptes chauffeurs/mécaniciens, définition des mots de passe et affectation des camions.
-            </p>
-          </div>
-        </div>
-
-        {/* Real Login Form */}
-        <div className="bg-slate-800/90 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-md mx-auto shadow-2xl">
-          <h3 className="text-lg font-bold text-white mb-5 flex items-center space-x-2">
-            <Lock className="w-5 h-5 text-blue-400" />
-            <span>Connexion Sécurisée</span>
-          </h3>
           <LoginForm onSuccess={onLoginSuccess} variant="page" />
-          <p className="text-[11px] text-slate-500 mt-4 flex items-center gap-1.5">
-            <KeyRound className="w-3 h-3" />
-            Identifiants créés et gérés par votre Super Administrateur.
-          </p>
         </div>
-      </main>
 
-      {/* Footer info */}
-      <footer className="max-w-7xl mx-auto w-full pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-        <div className="flex items-center space-x-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>YM-TRANSIT PWA — Système Officiel Logistique Flotte & Maintenance</span>
-        </div>
-        <div>
-          <span>Devises: <strong>FCFA</strong> | Multi-rôles & Authentification Sécurisée</span>
-        </div>
-      </footer>
+        <p className="text-center text-[11px] text-slate-500 mt-5">
+          Identifiants créés et gérés par votre Super Administrateur.
+        </p>
+      </div>
     </div>
   );
 };

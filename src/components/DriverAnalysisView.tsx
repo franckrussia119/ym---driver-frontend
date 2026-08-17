@@ -14,10 +14,39 @@ import {
   Loader2,
   ChevronRight,
   BarChart3,
+  Calendar,
+  Wallet,
+  Route,
 } from 'lucide-react';
 import { formatFCFA } from '../types';
 import { listDrivers, getDriverHistory, DriverListItem, DriverHistoryResponse } from '../lib/driverHistory';
 import { ApiError } from '../lib/api';
+
+type PeriodPreset = '7J' | '30J' | 'MOIS' | 'PERSONNALISE' | 'TOUT';
+
+function isoDate(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+function presetToRange(preset: PeriodPreset): { from?: string; to?: string } {
+  const now = new Date();
+  const to = isoDate(now);
+  if (preset === '7J') {
+    const from = new Date(now);
+    from.setDate(now.getDate() - 7);
+    return { from: isoDate(from), to };
+  }
+  if (preset === '30J') {
+    const from = new Date(now);
+    from.setDate(now.getDate() - 30);
+    return { from: isoDate(from), to };
+  }
+  if (preset === 'MOIS') {
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { from: isoDate(from), to };
+  }
+  return {}; // 'TOUT' — pas de filtre
+}
 
 export const DriverAnalysisView: React.FC = () => {
   const [drivers, setDrivers] = useState<DriverListItem[]>([]);
@@ -29,6 +58,10 @@ export const DriverAnalysisView: React.FC = () => {
   const [detail, setDetail] = useState<DriverHistoryResponse | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+
+  const [preset, setPreset] = useState<PeriodPreset>('TOUT');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   const fetchDrivers = useCallback(async () => {
     setIsLoadingList(true);
@@ -47,20 +80,37 @@ export const DriverAnalysisView: React.FC = () => {
     fetchDrivers();
   }, [fetchDrivers]);
 
-  const openDriver = async (driverId: string) => {
-    setSelectedDriverId(driverId);
+  const currentRange = useCallback((): { from?: string; to?: string } => {
+    if (preset === 'PERSONNALISE') {
+      return { from: customFrom || undefined, to: customTo || undefined };
+    }
+    return presetToRange(preset);
+  }, [preset, customFrom, customTo]);
+
+  const loadDetail = useCallback(async (driverId: string) => {
     setIsLoadingDetail(true);
     setDetailError(null);
-    setDetail(null);
     try {
-      const data = await getDriverHistory(driverId);
+      const data = await getDriverHistory(driverId, currentRange());
       setDetail(data);
     } catch (err) {
       setDetailError(err instanceof ApiError ? err.message : 'Impossible de charger le détail de ce chauffeur.');
     } finally {
       setIsLoadingDetail(false);
     }
+  }, [currentRange]);
+
+  const openDriver = async (driverId: string) => {
+    setSelectedDriverId(driverId);
+    setDetail(null);
+    await loadDetail(driverId);
   };
+
+  // Recharge automatiquement quand la période change, tant qu'un chauffeur est sélectionné.
+  useEffect(() => {
+    if (selectedDriverId) loadDetail(selectedDriverId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset, customFrom, customTo]);
 
   const filteredDrivers = drivers.filter(
     (d) =>
@@ -83,6 +133,60 @@ export const DriverAnalysisView: React.FC = () => {
           <ArrowLeft className="w-3.5 h-3.5" />
           Retour à la liste des chauffeurs
         </button>
+
+        {/* Sélecteur de période */}
+        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-3.5 flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mr-1">
+            <Calendar className="w-3.5 h-3.5" />
+            Période :
+          </div>
+          {([
+            ['7J', '7 derniers jours'],
+            ['30J', '30 derniers jours'],
+            ['MOIS', 'Ce mois-ci'],
+            ['TOUT', 'Tout'],
+          ] as [PeriodPreset, string][]).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setPreset(key)}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                preset === key
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setPreset('PERSONNALISE')}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+              preset === 'PERSONNALISE' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Personnalisé
+          </button>
+
+          {preset === 'PERSONNALISE' && (
+            <div className="flex items-center gap-2 ml-1">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="px-2.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg"
+              />
+              <span className="text-slate-400 text-xs">→</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="px-2.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg"
+              />
+            </div>
+          )}
+        </div>
 
         {isLoadingDetail && (
           <div className="p-16 flex items-center justify-center text-slate-400 gap-2">
@@ -146,6 +250,18 @@ export const DriverAnalysisView: React.FC = () => {
                 sub={detail.summary.dernierRang ? `Rang #${detail.summary.dernierRang}` : undefined}
                 accent="blue"
               />
+              <SummaryCard
+                icon={Wallet}
+                label="Montant perçu (POD)"
+                value={formatFCFA(detail.summary.totalMontantRecuFCFA)}
+                accent="emerald"
+              />
+              <SummaryCard
+                icon={Route}
+                label="Distance livrée (POD)"
+                value={`${detail.summary.totalDistancePodKm.toLocaleString('fr-FR')} km`}
+                accent="blue"
+              />
             </div>
 
             <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 flex items-center justify-between">
@@ -184,7 +300,12 @@ export const DriverAnalysisView: React.FC = () => {
               columns={[
                 { header: 'BL', render: (p) => p.blNumber },
                 { header: 'Client', render: (p) => p.clientName },
-                { header: 'Date', render: (p) => p.dateTime },
+                {
+                  header: 'Départ → Distance',
+                  render: (p) =>
+                    `${p.departurePort === 'PAK' ? 'PAK' : p.departurePort === 'PAD' ? 'PAD' : p.departurePortAutre || 'Autre'} · ${p.distanceKm ?? 0} km`,
+                },
+                { header: 'Montant', render: (p) => formatFCFA(p.montantRecuFCFA ?? 0) },
                 { header: 'Statut', render: (p) => p.status, badge: (p) => (p.status === 'LIVRE_CONFORME' ? 'emerald' : 'amber') },
               ]}
             />

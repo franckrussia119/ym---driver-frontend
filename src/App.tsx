@@ -45,7 +45,6 @@ import { Sidebar, SidebarTab } from './components/Sidebar';
 import { RoutesDispatchView } from './components/RoutesDispatchView';
 import { DriverMobileAppView } from './components/DriverMobileAppView';
 import { ModulesDashboard } from './components/ModulesDashboard';
-import { ProofOfDeliveryModal } from './components/ProofOfDeliveryModal';
 import { Section2TripsLog } from './components/Section2TripsLog';
 import { Section3VehicleInspection } from './components/Section3VehicleInspection';
 import { Section4Observations } from './components/Section4Observations';
@@ -83,8 +82,6 @@ export default function App() {
   const [isSmartphoneView, setIsSmartphoneView] = useState<boolean>(false);
 
   // POD Modal State
-  const [isPODModalOpen, setIsPODModalOpen] = useState(false);
-  const [podTargetWaypoint, setPodTargetWaypoint] = useState('Main Warehouse');
 
   // Users State
   const [users, setUsers] = useState<UserProfile[]>(() => {
@@ -373,9 +370,10 @@ export default function App() {
   };
 
 
-  const handleOpenPODModalForWaypoint = (waypointName: string) => {
-    setPodTargetWaypoint(waypointName);
-    setIsPODModalOpen(true);
+  // Redirige vers l'écran réel de Preuve de Livraison (l'ancien modal de
+  // confirmation rapide ne persistait jamais rien en base de données).
+  const handleOpenPODModalForWaypoint = (_waypointName: string) => {
+    setSidebarTab('proof_of_delivery');
   };
 
   // Le backend filtre déjà les rapports/pannes par chauffeur connecté (voir
@@ -451,15 +449,6 @@ export default function App() {
       )}
 
       {/* Proof of Delivery Modal (POD) */}
-      <ProofOfDeliveryModal
-        isOpen={isPODModalOpen}
-        onClose={() => setIsPODModalOpen(false)}
-        waypointName={podTargetWaypoint}
-        onConfirmPOD={(data) => {
-          showToast(`POD enregistré pour ${podTargetWaypoint} (Signataire : ${data.recipientName})`);
-        }}
-      />
-
       {/* Left Sidebar */}
       <Sidebar
         activeTab={sidebarTab}

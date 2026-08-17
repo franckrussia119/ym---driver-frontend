@@ -5,6 +5,26 @@ export async function listPOD(): Promise<PODRecord[]> {
   return api.get<PODRecord[]>('/api/pod');
 }
 
-export async function createPOD(record: Omit<PODRecord, 'id'>): Promise<PODRecord> {
+export interface CreatePODInput {
+  blNumber: string;
+  containerNumber: string;
+  clientName: string;
+  deliveryAddress: string;
+  driverName: string;
+  truckImmatriculation: string;
+  dateTime: string;
+  gpsLocation?: string;
+  recipientName: string;
+  status: PODRecord['status'];
+  bordereauPhotoUrl?: string;
+  photoUrl?: string;
+  observations?: string;
+  departurePort: 'PAK' | 'PAD' | 'Autres';
+  departurePortAutre?: string;
+  montantRecuFCFA: number;
+  distanceKm: number;
+}
+
+export async function createPOD(record: CreatePODInput): Promise<PODRecord> {
   return api.post<PODRecord>('/api/pod', record);
 }
