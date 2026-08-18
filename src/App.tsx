@@ -529,7 +529,7 @@ export default function App() {
                       <Lock className="w-3.5 h-3.5" />
                       Envoyé — non modifiable
                     </span>
-                  ) : (
+                  ) : currentUser?.role === 'CHAUFFEUR' ? (
                     <button
                       onClick={() => setIsDeclareFaultModalOpen(true)}
                       className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 cursor-pointer"
@@ -537,7 +537,7 @@ export default function App() {
                       <AlertTriangle className="w-3.5 h-3.5" />
                       <span>Déclarer Panne</span>
                     </button>
-                  )}
+                  ) : null}
                 </div>
 
                 <Section1DriverInfo
@@ -748,14 +748,9 @@ export default function App() {
             )}
 
             {/* 13. OTHER MODULES DASHBOARD */}
-            {(sidebarTab === 'planning_auto' ||
-              sidebarTab === 'orders_tasks' ||
-              sidebarTab === 'realtime_eta' ||
-              sidebarTab === 'customer_tracking' ||
+            {(sidebarTab === 'realtime_eta' ||
               sidebarTab === 'barcode_scan' ||
-              sidebarTab === 'route_modification' ||
-              sidebarTab === 'hazmat_routing' ||
-              sidebarTab === 'commercial_nav') && (
+              sidebarTab === 'hazmat_routing') && (
               <ModulesDashboard
                 onSelectModule={setSidebarTab}
                 onOpenPODModal={handleOpenPODModalForWaypoint}

@@ -34,8 +34,19 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
   onViewReport,
   onViewFault,
 }) => {
+  // Cet écran est aussi utilisé par l'Admin/Superviseur pour prévisualiser
+  // l'application mobile du chauffeur — dans ce cas, les actions
+  // (déclarer une panne, remplir un rapport) doivent rester désactivées :
+  // seul le chauffeur lui-même peut les effectuer.
+  const isDriverViewing = currentUser?.role === 'CHAUFFEUR';
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
+      {!isDriverViewing && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-xl px-4 py-2.5">
+          Aperçu de l'application mobile chauffeur — lecture seule. Seul le chauffeur connecté peut déclarer une panne ou remplir son rapport.
+        </div>
+      )}
       {/* Driver Welcome Card */}
       <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm border border-slate-800 flex items-center justify-between gap-4">
         <div className="flex items-center space-x-3.5 min-w-0">
@@ -73,8 +84,9 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
         {/* ACTION 1: DECLARE FAULT */}
         <button
           type="button"
+          disabled={!isDriverViewing}
           onClick={onOpenDeclareFault}
-          className="group relative bg-white hover:bg-rose-50/50 p-5 rounded-2xl border-2 border-slate-200 hover:border-rose-500 shadow-sm transition-all duration-200 text-left cursor-pointer flex flex-col justify-between min-h-[140px] active:scale-[0.99]"
+          className="group relative bg-white hover:bg-rose-50/50 disabled:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed p-5 rounded-2xl border-2 border-slate-200 hover:border-rose-500 shadow-sm transition-all duration-200 text-left cursor-pointer flex flex-col justify-between min-h-[140px] active:scale-[0.99]"
         >
           <div className="flex items-start justify-between">
             <div className="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center group-hover:bg-rose-600 group-hover:text-white transition-colors">
@@ -98,8 +110,9 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
         {/* ACTION 2: WEEKLY REPORT */}
         <button
           type="button"
+          disabled={!isDriverViewing}
           onClick={onOpenWeeklyReport}
-          className="group relative bg-white hover:bg-blue-50/50 p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-600 shadow-sm transition-all duration-200 text-left cursor-pointer flex flex-col justify-between min-h-[140px] active:scale-[0.99]"
+          className="group relative bg-white hover:bg-blue-50/50 disabled:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed p-5 rounded-2xl border-2 border-slate-200 hover:border-blue-600 shadow-sm transition-all duration-200 text-left cursor-pointer flex flex-col justify-between min-h-[140px] active:scale-[0.99]"
         >
           <div className="flex items-start justify-between">
             <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">

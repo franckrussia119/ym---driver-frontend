@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import {
-  Calendar,
-  UserCheck,
-  FileText,
   Navigation,
-  Send,
   Smartphone,
   CheckCircle2,
   QrCode,
   Star,
-  SlidersHorizontal,
   ShieldAlert,
-  Truck,
   Sparkles,
   ArrowRight,
   Play,
@@ -55,30 +49,6 @@ export const ModulesDashboard: React.FC<ModulesDashboardProps> = ({
 
   const modulesList = [
     {
-      id: 'planning_auto',
-      icon: Calendar,
-      title: 'Planification automatisée',
-      desc: 'Maximisez le nombre de commandes effectuées tout en réduisant les coûts de trajet.',
-      color: 'text-cyan-600 bg-cyan-50 border-cyan-200',
-      tab: 'planning_auto' as SidebarTab,
-    },
-    {
-      id: 'driver_vehicle',
-      icon: UserCheck,
-      title: 'Conducteur et véhicule',
-      desc: 'Prenez en compte les compétences des conducteurs, les coûts et les capacités des véhicules.',
-      color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-      tab: 'driver_vehicle' as SidebarTab,
-    },
-    {
-      id: 'orders_tasks',
-      icon: FileText,
-      title: 'Commande et tâche',
-      desc: 'Ajoutez des priorités, des créneaux horaires, des durées d’intervention et des compétences.',
-      color: 'text-blue-600 bg-blue-50 border-blue-200',
-      tab: 'orders_tasks' as SidebarTab,
-    },
-    {
       id: 'realtime_eta',
       icon: Navigation,
       title: 'Suivi en temps réel et ETA',
@@ -87,29 +57,12 @@ export const ModulesDashboard: React.FC<ModulesDashboardProps> = ({
       tab: 'realtime_eta' as SidebarTab,
     },
     {
-      id: 'customer_tracking',
-      icon: Send,
-      title: 'Suivi des commandes en temps réel',
-      desc: 'Envoyez à vos clients des notifications personnalisées sur l’ETA et le statut.',
-      color: 'text-sky-600 bg-sky-50 border-sky-200',
-      tab: 'customer_tracking' as SidebarTab,
-    },
-    {
       id: 'driver_mobile_app',
       icon: Smartphone,
       title: 'Application mobile pour les conducteurs',
       desc: 'Envoyez les itinéraires directement aux conducteurs et recevez des mises à jour en temps réel.',
       color: 'text-teal-600 bg-teal-50 border-teal-200',
       tab: 'driver_mobile_app' as SidebarTab,
-    },
-    {
-      id: 'proof_of_delivery',
-      icon: CheckCircle2,
-      title: 'Preuve de livraison',
-      desc: 'Capturez des signatures numériques, des photos et créez des formulaires personnalisés.',
-      color: 'text-emerald-700 bg-emerald-100/60 border-emerald-300',
-      tab: 'proof_of_delivery' as SidebarTab,
-      highlight: true,
     },
     {
       id: 'barcode_scan',
@@ -128,28 +81,12 @@ export const ModulesDashboard: React.FC<ModulesDashboardProps> = ({
       tab: 'customer_feedback' as SidebarTab,
     },
     {
-      id: 'route_modification',
-      icon: SlidersHorizontal,
-      title: 'Modification d’itinéraire en temps réel',
-      desc: 'Réagissez aux changements de dernière minute grâce au glisser-déposer intelligent.',
-      color: 'text-indigo-700 bg-indigo-50 border-indigo-200',
-      tab: 'route_modification' as SidebarTab,
-    },
-    {
       id: 'hazmat_routing',
       icon: ShieldAlert,
       title: 'Itinéraires pour camions et matières dangereuses',
       desc: 'Optimisez les itinéraires pour les poids lourds et les véhicules transportant des matières dangereuses.',
       color: 'text-orange-600 bg-orange-50 border-orange-200',
       tab: 'hazmat_routing' as SidebarTab,
-    },
-    {
-      id: 'commercial_nav',
-      icon: Truck,
-      title: 'Navigation pour camions commerciaux',
-      desc: 'Trouvez les meilleurs itinéraires pour camions, évitez les restrictions routières et réduisez vos coûts.',
-      color: 'text-blue-700 bg-blue-50 border-blue-200',
-      tab: 'commercial_nav' as SidebarTab,
     },
   ];
 
@@ -172,7 +109,7 @@ export const ModulesDashboard: React.FC<ModulesDashboardProps> = ({
             <span>Plateforme Logistique Complète YM-TRANSIT</span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white">
-            12 Modules & Services d'Optimisation
+            5 Modules & Services d'Optimisation
           </h1>
           <p className="text-xs text-slate-300 max-w-2xl mt-1">
             Gestion automatisée des itinéraires, preuve de livraison numérique (POD), scan de codes-barres, guidage poids lourd Hazmat et suivi client.
@@ -198,17 +135,11 @@ export const ModulesDashboard: React.FC<ModulesDashboardProps> = ({
               onClick={() => {
                 if (m.tab === 'barcode_scan' || m.tab === 'customer_feedback' || m.tab === 'hazmat_routing') {
                   setActiveModuleModal(m.id);
-                } else if (m.tab === 'proof_of_delivery' && onOpenPODModal) {
-                  onOpenPODModal('Livraison Conteneur MSCU-904');
                 } else {
                   onSelectModule(m.tab);
                 }
               }}
-              className={`p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 relative group flex flex-col justify-between ${
-                m.highlight
-                  ? 'bg-gradient-to-br from-blue-50 to-emerald-50/60 border-blue-300 ring-2 ring-blue-400/20'
-                  : 'bg-white border-slate-200 hover:border-blue-400'
-              }`}
+              className="p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md hover:-translate-y-0.5 relative group flex flex-col justify-between bg-white border-slate-200 hover:border-blue-400"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">

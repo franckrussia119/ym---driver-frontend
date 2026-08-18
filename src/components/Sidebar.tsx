@@ -4,7 +4,6 @@ import {
   Calendar,
   Route,
   Box,
-  FileText,
   MessageSquare,
   Bell,
   ChevronDown,
@@ -14,12 +13,8 @@ import {
   X,
   Smartphone,
   ShieldCheck,
-  CheckCircle2,
   QrCode,
   Star,
-  MapPin,
-  Sparkles,
-  SlidersHorizontal,
   Navigation,
   Globe,
   AlertTriangle,
@@ -72,7 +67,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isOpenMobile, setIsOpenMobile] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    planning: true,
     fleet: true,
     operations: true,
     navigation: true,
@@ -186,54 +180,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </button>
 
-          {/* SECTION 1: PLANIFICATION */}
-          <div className="space-y-1">
-            <button
-              onClick={() => toggleGroup('planning')}
-              className="w-full flex items-center justify-between text-[10px] font-medium text-slate-400 uppercase tracking-wider px-2 py-1 hover:text-slate-200 cursor-pointer"
-            >
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>Planification</span>
-              </div>
-              {expandedGroups.planning ? (
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              )}
-            </button>
-
-            {expandedGroups.planning && (
-              <div className="space-y-0.5 pl-2 border-l border-slate-800 ml-2">
-                <button
-                  onClick={() => {
-                    setActiveTab('planning_auto');
-                    setIsOpenMobile(false);
-                  }}
-                  className={navClass('planning_auto')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Planification auto</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('route_modification');
-                    setIsOpenMobile(false);
-                  }}
-                  className={navClass('route_modification')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Modif. temps réel</span>
-                  </div>
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* SECTION 2: CONDUCTEUR & FLOTTE */}
           <div className="space-y-1">
             <button
@@ -253,19 +199,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {expandedGroups.fleet && (
               <div className="space-y-0.5 pl-2 border-l border-slate-800 ml-2">
-                <button
-                  onClick={() => {
-                    setActiveTab('driver_vehicle');
-                    setIsOpenMobile(false);
-                  }}
-                  className={navClass('driver_vehicle')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <UserCheck className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Conducteur & Véhicule</span>
-                  </div>
-                </button>
-
                 <button
                   onClick={() => {
                     setActiveTab('fleet_registry');
@@ -394,32 +327,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="space-y-0.5 pl-2 border-l border-slate-800 ml-2">
                 <button
                   onClick={() => {
-                    setActiveTab('orders_tasks');
-                    setIsOpenMobile(false);
-                  }}
-                  className={navClass('orders_tasks')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <FileText className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Commande & tâche</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('customer_tracking');
-                    setIsOpenMobile(false);
-                  }}
-                  className={navClass('customer_tracking')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Suivi commandes client</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
                     setActiveTab('driver_mobile_app');
                     setIsOpenMobile(false);
                   }}
@@ -428,19 +335,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="flex items-center space-x-2">
                     <Smartphone className="w-3.5 h-3.5 text-slate-400" />
                     <span>App Mobile Chauffeur</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('proof_of_delivery');
-                    setIsOpenMobile(false);
-                  }}
-                  className={navClass('proof_of_delivery')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Preuve de livraison (POD)</span>
                   </div>
                 </button>
 
@@ -515,19 +409,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="flex items-center space-x-2">
                     <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
                     <span>Poids lourd & Hazmat</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveTab('commercial_nav');
-                    setIsOpenMobile(false);
-                  }}
-                  className={navClass('commercial_nav')}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Truck className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Nav. camion commercial</span>
                   </div>
                 </button>
               </div>

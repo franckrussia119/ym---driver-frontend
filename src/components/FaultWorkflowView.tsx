@@ -82,14 +82,16 @@ export const FaultWorkflowView: React.FC<FaultWorkflowViewProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenDeclareModal}
-          className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Déclarer une Panne</span>
-        </button>
+        {currentUser?.role === 'CHAUFFEUR' && (
+          <button
+            type="button"
+            onClick={onOpenDeclareModal}
+            className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Déclarer une Panne</span>
+          </button>
+        )}
       </div>
 
       {/* Main Grid: Faults List (Left) + Selected Fault Details & Actions (Right) */}
