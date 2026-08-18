@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { FleetVehicle, AdminDocument, VehicleStatus, UserProfile } from '../types';
 import { listVehicles, createVehicle, updateVehicle, addVehicleDocument } from '../lib/vehicles';
-import { ApiError } from '../lib/api';
+import { ApiError, uploadFile } from '../lib/api';
 
 interface FleetRegistryViewProps {
   driversList: UserProfile[];
@@ -155,14 +155,22 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
     return 'VALIDE';
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (s: string) => void) => {
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (s: string) => void) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setter(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+    setUploadError(null);
+    setIsUploadingPhoto(true);
+    try {
+      const url = await uploadFile(file, file.name);
+      setter(url);
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? err.message : "Échec de l'envoi de la photo.");
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -734,9 +742,11 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
                   <input
                     type="file"
                     accept="image/*"
+                    disabled={isUploadingPhoto}
                     onChange={(e) => handleFileUpload(e, setPhotoUrl)}
-                    className="text-xs text-slate-500 cursor-pointer"
+                    className="text-xs text-slate-500 cursor-pointer disabled:opacity-50"
                   />
+                  {isUploadingPhoto && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
                   {photoUrl && (
                     <img src={photoUrl} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-slate-200" />
                   )}

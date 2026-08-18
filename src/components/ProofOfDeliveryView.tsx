@@ -18,12 +18,13 @@ import {
   ShieldCheck,
   PackageCheck,
   History,
+  Loader2,
   ChevronRight,
   ArrowLeft,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { listPOD, createPOD } from '../lib/pod';
-import { ApiError } from '../lib/api';
+import { ApiError, uploadFile } from '../lib/api';
 import { CAMEROON_DESTINATIONS, getDistanceKm } from '../data/distances';
 
 export interface PODRecord {
@@ -138,30 +139,47 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
 
   const bordereauInputRef = React.useRef<HTMLInputElement>(null);
   const colisInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploadingBordereau, setIsUploadingBordereau] = useState(false);
+  const [isUploadingColis, setIsUploadingColis] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleCaptureBordereau = () => {
     bordereauInputRef.current?.click();
   };
-  const handleBordereauSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBordereauSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setBordereauPhotoUrl(reader.result as string);
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    setUploadError(null);
+    setIsUploadingBordereau(true);
+    try {
+      const url = await uploadFile(file, file.name);
+      setBordereauPhotoUrl(url);
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? err.message : "Échec de l'envoi de la photo du bordereau.");
+    } finally {
+      setIsUploadingBordereau(false);
+    }
   };
 
   const handleCapturePhoto = () => {
     colisInputRef.current?.click();
   };
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setPhotoUrl(reader.result as string);
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    setUploadError(null);
+    setIsUploadingColis(true);
+    try {
+      const url = await uploadFile(file, file.name);
+      setPhotoUrl(url);
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? err.message : "Échec de l'envoi de la photo.");
+    } finally {
+      setIsUploadingColis(false);
+    }
   };
 
   const handleCreatePOD = async (e: React.FormEvent) => {
@@ -586,11 +604,21 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               ) : (
                 <button
                   type="button"
+                  disabled={isUploadingBordereau}
                   onClick={handleCaptureBordereau}
-                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 disabled:opacity-60 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
-                  <Camera className="w-4 h-4 text-emerald-600" />
-                  <span>Prendre une photo du bordereau</span>
+                  {isUploadingBordereau ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      <span>Envoi de la photo…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 text-emerald-600" />
+                      <span>Prendre une photo du bordereau</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -611,11 +639,21 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               ) : (
                 <button
                   type="button"
+                  disabled={isUploadingColis}
                   onClick={handleCapturePhoto}
-                  className="w-full py-3 bg-slate-50 hover:bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  className="w-full py-3 bg-slate-50 hover:bg-slate-100 disabled:opacity-60 border-2 border-dashed border-slate-300 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
-                  <Camera className="w-4 h-4 text-emerald-600" />
-                  <span>Prendre photo du conteneur / plombage</span>
+                  {isUploadingColis ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                      <span>Envoi de la photo…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 text-emerald-600" />
+                      <span>Prendre photo du conteneur / plombage</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -631,10 +669,16 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               />
             </div>
 
+            {uploadError && (
+              <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                {uploadError}
+              </p>
+            )}
+
             <div className="pt-3 border-t border-slate-100 flex gap-3">
               <button
                 type="submit"
-                disabled={isSubmittingPOD}
+                disabled={isSubmittingPOD || isUploadingBordereau || isUploadingColis}
                 className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />

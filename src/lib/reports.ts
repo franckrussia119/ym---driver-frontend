@@ -146,6 +146,19 @@ export function toBackendPayload(report: WeeklyReport) {
     suggestionsOperations: report.observations.suggestionsOperations,
     besoinsFormation: report.observations.besoinsFormation,
     commentairesGeneraux: report.observations.commentairesGeneraux,
+    photos: (report.observations.photos || []).map((p) => ({
+      fileUrl: p.dataUrl,
+      caption: p.caption,
+      date: p.date,
+      fieldKey: p.fieldKey,
+    })),
+    voiceNotes: (report.observations.voiceNotes || []).map((v) => ({
+      fileUrl: v.dataUrl,
+      durationSeconds: v.durationSeconds,
+      date: v.date,
+      transcription: v.transcription,
+      fieldKey: v.fieldKey,
+    })),
   };
 }
 

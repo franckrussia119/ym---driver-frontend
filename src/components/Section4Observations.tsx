@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DriverObservations, AudioNote, PhotoEvidence } from '../types';
+import { uploadFile, ApiError } from '../lib/api';
 import {
   Navigation,
   Users,
@@ -17,6 +18,7 @@ import {
   Volume2,
   Check,
   Eye,
+  Loader2,
   AlertCircle,
   Sparkles,
   Upload
@@ -100,6 +102,8 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
   // Audio Playback State
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [isUploadingVoiceNote, setIsUploadingVoiceNote] = useState(false);
+  const [isUploadingObsPhoto, setIsUploadingObsPhoto] = useState(false);
 
   // References
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -211,15 +215,17 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
         }
       };
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current as BlobPart[], { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          const base64Audio = reader.result as string;
+        stream.getTracks().forEach((track) => track.stop());
+
+        setIsUploadingVoiceNote(true);
+        setAudioError(null);
+        try {
+          const url = await uploadFile(audioBlob, `voice_${Date.now()}.webm`);
           const newAudioNote: AudioNote = {
             id: `voice_${Date.now()}`,
-            dataUrl: base64Audio,
+            dataUrl: url,
             durationSeconds: recordingSeconds > 0 ? recordingSeconds : 1,
             fieldKey: fieldKey,
             date: new Date().toLocaleString('fr-FR', {
@@ -234,9 +240,11 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
             ...observations,
             voiceNotes: [...(observations.voiceNotes || []), newAudioNote],
           });
-        };
-
-        stream.getTracks().forEach((track) => track.stop());
+        } catch (err) {
+          setAudioError(err instanceof ApiError ? err.message : "Échec de l'envoi de la note vocale.");
+        } finally {
+          setIsUploadingVoiceNote(false);
+        }
       };
 
       recorder.start();
@@ -323,18 +331,23 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const targetField = activePhotoFieldRef.current || 'commentairesGeneraux';
+    const fileArray = Array.from(files);
+    e.target.value = '';
 
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newPhoto: PhotoEvidence = {
+    setIsUploadingObsPhoto(true);
+    setAudioError(null);
+    const newPhotos: PhotoEvidence[] = [];
+    try {
+      for (const file of fileArray) {
+        const url = await uploadFile(file, file.name);
+        newPhotos.push({
           id: `photo_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
-          dataUrl: reader.result as string,
+          dataUrl: url,
           fieldKey: targetField,
           caption: '',
           date: new Date().toLocaleString('fr-FR', {
@@ -343,14 +356,19 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
             hour: '2-digit',
             minute: '2-digit',
           }),
-        };
+        });
+      }
+    } catch (err) {
+      setAudioError(err instanceof ApiError ? err.message : "Échec de l'envoi de la photo.");
+    } finally {
+      if (newPhotos.length > 0) {
         onChange({
           ...observations,
-          photos: [...(observations.photos || []), newPhoto],
+          photos: [...(observations.photos || []), ...newPhotos],
         });
-      };
-      reader.readAsDataURL(file as File);
-    });
+      }
+      setIsUploadingObsPhoto(false);
+    }
   };
 
   const openCameraForField = async (fieldKey: ObservationFieldKey) => {
@@ -381,27 +399,40 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-
       const targetField = activePhotoFieldRef.current || 'commentairesGeneraux';
 
-      const newPhoto: PhotoEvidence = {
-        id: `photo_${Date.now()}`,
-        dataUrl,
-        fieldKey: targetField,
-        caption: 'Photo de confirmation',
-        date: new Date().toLocaleString('fr-FR', {
-          day: '2-digit',
-          month: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-      };
-
-      onChange({
-        ...observations,
-        photos: [...(observations.photos || []), newPhoto],
-      });
+      canvas.toBlob(
+        async (blob) => {
+          if (!blob) return;
+          setIsUploadingObsPhoto(true);
+          setAudioError(null);
+          try {
+            const url = await uploadFile(blob, `photo_${Date.now()}.jpg`);
+            const newPhoto: PhotoEvidence = {
+              id: `photo_${Date.now()}`,
+              dataUrl: url,
+              fieldKey: targetField,
+              caption: 'Photo de confirmation',
+              date: new Date().toLocaleString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            };
+            onChange({
+              ...observations,
+              photos: [...(observations.photos || []), newPhoto],
+            });
+          } catch (err) {
+            setAudioError(err instanceof ApiError ? err.message : "Échec de l'envoi de la photo.");
+          } finally {
+            setIsUploadingObsPhoto(false);
+          }
+        },
+        'image/jpeg',
+        0.85
+      );
     }
 
     closeCameraStream();
@@ -519,29 +550,39 @@ export const Section4Observations: React.FC<Section4ObservationsProps> = ({
                   {/* Record Voice Note */}
                   <button
                     type="button"
+                    disabled={isUploadingVoiceNote}
                     onClick={() =>
                       isRecordingThisField ? stopFieldRecording() : startFieldRecording(field.key)
                     }
-                    className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
+                    className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
                       isRecordingThisField
                         ? 'bg-rose-600 text-white border-rose-700'
                         : 'bg-white hover:bg-rose-50 text-rose-700 border-rose-200'
                     }`}
                     title="Enregistrer un message vocal pour ce champ"
                   >
-                    <Mic className={`w-3 h-3 ${isRecordingThisField ? 'animate-ping' : ''}`} />
-                    <span>{isRecordingThisField ? 'Arrêter' : 'Vocal'}</span>
+                    {isUploadingVoiceNote && !isRecordingThisField ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Mic className={`w-3 h-3 ${isRecordingThisField ? 'animate-ping' : ''}`} />
+                    )}
+                    <span>{isRecordingThisField ? 'Arrêter' : isUploadingVoiceNote ? 'Envoi…' : 'Vocal'}</span>
                   </button>
 
                   {/* Take / Attach Photo */}
                   <button
                     type="button"
+                    disabled={isUploadingObsPhoto}
                     onClick={() => openCameraForField(field.key)}
-                    className="px-2 py-1 text-[11px] font-bold bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                    className="px-2 py-1 text-[11px] font-bold bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                     title="Prendre ou joindre une photo pour cette observation"
                   >
-                    <Camera className="w-3 h-3 text-blue-600" />
-                    <span>Photo</span>
+                    {isUploadingObsPhoto ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Camera className="w-3 h-3 text-blue-600" />
+                    )}
+                    <span>{isUploadingObsPhoto ? 'Envoi…' : 'Photo'}</span>
                   </button>
                 </div>
               </div>

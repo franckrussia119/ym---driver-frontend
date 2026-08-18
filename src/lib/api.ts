@@ -137,4 +137,38 @@ export const api = {
   del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
 
+// Upload réel d'un fichier (photo, document) vers /api/uploads — retourne
+// une URL courte à stocker, au lieu d'intégrer le fichier en base64 dans le
+// JSON (ce qui dépasse vite la limite de taille de requête sur de vraies
+// photos de téléphone).
+export async function uploadFile(file: Blob, filename: string): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file, filename);
+
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE_URL}/api/uploads`, {
+    method: 'POST',
+    headers, // ne pas fixer Content-Type : le navigateur ajoute la bonne boundary multipart
+    body: formData,
+  });
+
+  if (!res.ok) {
+    let message = "Échec de l'envoi du fichier.";
+    try {
+      const data = await res.json();
+      if (data?.error) message = data.error;
+    } catch {
+      /* réponse non-JSON */
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  const data = await res.json();
+  const relativeUrl = data.url as string;
+  return relativeUrl.startsWith('http') ? relativeUrl : `${API_BASE_URL}${relativeUrl}`;
+}
+
 export { API_BASE_URL };
