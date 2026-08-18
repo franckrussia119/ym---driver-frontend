@@ -204,12 +204,14 @@ export const UserManagementView: React.FC = () => {
                           ? 'bg-blue-100 text-blue-800'
                           : u.role === 'SUPERVISEUR'
                           ? 'bg-indigo-100 text-indigo-800'
+                          : u.role === 'SUPERVISEUR_CONTENEURS'
+                          ? 'bg-cyan-100 text-cyan-800'
                           : u.role === 'MECANICIEN'
                           ? 'bg-amber-100 text-amber-800'
                           : 'bg-emerald-100 text-emerald-800'
                       }`}
                     >
-                      {u.role}
+                      {u.role === 'SUPERVISEUR_CONTENEURS' ? 'Superviseur Conteneurs' : u.role}
                     </span>
                   </td>
 
@@ -321,6 +323,7 @@ export const UserManagementView: React.FC = () => {
                   <option value="CHAUFFEUR">Chauffeur</option>
                   <option value="MECANICIEN">Mécanicien</option>
                   <option value="SUPERVISEUR">Superviseur de Flotte</option>
+                  <option value="SUPERVISEUR_CONTENEURS">Superviseur Conteneurs</option>
                   <option value="ADMIN">Administration</option>
                   <option value="SUPER_ADMIN">Super Admin</option>
                 </select>

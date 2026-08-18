@@ -13,10 +13,15 @@ import {
   History,
   Package,
   Ship,
+  RotateCcw,
+  X,
+  Camera,
+  Loader2,
 } from 'lucide-react';
 import { UserProfile, FaultDeclaration, formatFCFA } from '../types';
 import { ReportListItem } from '../lib/reports';
-import { Container, listContainers } from '../lib/containers';
+import { Container, listContainers, submitContainerReturn } from '../lib/containers';
+import { uploadFile, ApiError } from '../lib/api';
 
 interface DriverHomeMenuProps {
   currentUser: UserProfile | null;
@@ -44,14 +49,77 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
   const isDriverViewing = currentUser?.role === 'CHAUFFEUR';
 
   const [assignedContainers, setAssignedContainers] = useState<Container[]>([]);
-  useEffect(() => {
+  const fetchAssignedContainers = () => {
     if (!isDriverViewing) return;
     listContainers()
       .then((all) => setAssignedContainers(all.filter((c) => c.status === 'OUVERT')))
       .catch(() => {
         /* silencieux : la section conteneurs reste vide si le chargement échoue */
       });
+  };
+  useEffect(() => {
+    fetchAssignedContainers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDriverViewing]);
+
+  // Retour de conteneur, directement depuis le portail du chauffeur.
+  const [returnTarget, setReturnTarget] = useState<Container | null>(null);
+  const [dateRetourVide, setDateRetourVide] = useState('');
+  const [depotRetour, setDepotRetour] = useState('');
+  const [returnNotes, setReturnNotes] = useState('');
+  const [returnPhotoUrl, setReturnPhotoUrl] = useState<string | null>(null);
+  const [isUploadingReturnPhoto, setIsUploadingReturnPhoto] = useState(false);
+  const [isSavingReturn, setIsSavingReturn] = useState(false);
+  const [returnError, setReturnError] = useState<string | null>(null);
+
+  const openReturnModal = (c: Container) => {
+    setReturnTarget(c);
+    setDateRetourVide(new Date().toISOString().split('T')[0]);
+    setDepotRetour('');
+    setReturnNotes('');
+    setReturnPhotoUrl(null);
+    setReturnError(null);
+  };
+
+  const handleReturnPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setIsUploadingReturnPhoto(true);
+    setReturnError(null);
+    try {
+      setReturnPhotoUrl(await uploadFile(file, file.name));
+    } catch (err) {
+      setReturnError(err instanceof ApiError ? err.message : "Échec de l'envoi de la photo.");
+    } finally {
+      setIsUploadingReturnPhoto(false);
+    }
+  };
+
+  const handleSubmitReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!returnTarget) return;
+    if (!depotRetour.trim()) {
+      setReturnError('Veuillez indiquer le dépôt de retour.');
+      return;
+    }
+    setIsSavingReturn(true);
+    setReturnError(null);
+    try {
+      await submitContainerReturn(returnTarget.id, {
+        dateRetourVide,
+        depotRetour,
+        photoUrl: returnPhotoUrl || undefined,
+        notes: returnNotes || undefined,
+      });
+      setReturnTarget(null);
+      fetchAssignedContainers();
+    } catch (err) {
+      setReturnError(err instanceof ApiError ? err.message : "Échec de l'enregistrement du retour.");
+    } finally {
+      setIsSavingReturn(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
@@ -168,23 +236,33 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
             {assignedContainers.map((c) => (
               <div
                 key={c.id}
-                className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between gap-3"
+                className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs"
               >
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                    <Package className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-slate-900 block truncate">{c.containerNumber}</span>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                      <Ship className="w-3 h-3" />
-                      <span>{c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-slate-900 block truncate">{c.containerNumber}</span>
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                        <Ship className="w-3 h-3" />
+                        <span>{c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
+                      </div>
                     </div>
                   </div>
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold text-[10px] rounded-lg shrink-0">
+                    BL {c.blNumber}
+                  </span>
                 </div>
-                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold text-[10px] rounded-lg shrink-0">
-                  BL {c.blNumber}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => openReturnModal(c)}
+                  className="mt-3 w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Enregistrer le Retour du Conteneur Vide
+                </button>
               </div>
             ))}
           </div>
@@ -289,6 +367,72 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
           )}
         </div>
       </div>
+
+      {/* RETURN CONTAINER MODAL */}
+      {returnTarget && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">Retour du Conteneur</h3>
+                <p className="text-[11px] text-slate-500">{returnTarget.containerNumber} · BL {returnTarget.blNumber}</p>
+              </div>
+              <button onClick={() => setReturnTarget(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] rounded-lg px-3 py-2 mb-3">
+              Cette action clôture définitivement ce conteneur et ne peut être faite qu'une seule fois.
+            </div>
+            <form onSubmit={handleSubmitReturn} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Date de Retour (vide) *</label>
+                <input type="date" required value={dateRetourVide} onChange={(e) => setDateRetourVide(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Dépôt de Retour *</label>
+                <input type="text" required value={depotRetour} onChange={(e) => setDepotRetour(e.target.value)}
+                  placeholder="Ex: Dépôt Bonabéri, Douala"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Photo Justificative (optionnel)</label>
+                {returnPhotoUrl ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 max-h-36">
+                    <img src={returnPhotoUrl} alt="Retour conteneur" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setReturnPhotoUrl(null)}
+                      className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-full cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer font-bold text-slate-700">
+                    {isUploadingReturnPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4 text-emerald-600" />}
+                    <span>{isUploadingReturnPhoto ? 'Envoi…' : 'Prendre une photo'}</span>
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleReturnPhoto} disabled={isUploadingReturnPhoto} />
+                  </label>
+                )}
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Notes</label>
+                <textarea value={returnNotes} onChange={(e) => setReturnNotes(e.target.value)} rows={2}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+              </div>
+              {returnError && <p className="text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{returnError}</p>}
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setReturnTarget(null)}
+                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-medium cursor-pointer">Annuler</button>
+                <button type="submit" disabled={isSavingReturn || isUploadingReturnPhoto}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5">
+                  {isSavingReturn && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Clôturer le Conteneur
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -48,6 +48,7 @@ import { ContainerDetailView } from './components/ContainerDetailView';
 import { SubcontractorDriversView } from './components/SubcontractorDriversView';
 import { ContainerReturnView } from './components/ContainerReturnView';
 import { ContainerReportsView } from './components/ContainerReportsView';
+import { getWorkspaceBg } from './lib/sidebarColors';
 import { RoutesDispatchView } from './components/RoutesDispatchView';
 import { DriverMobileAppView } from './components/DriverMobileAppView';
 import { ModulesDashboard } from './components/ModulesDashboard';
@@ -477,7 +478,7 @@ export default function App() {
       )}
 
       {/* Main Workspace Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-colors duration-300 ${getWorkspaceBg(sidebarTab)}`}>
         {/* Top Header Bar */}
         {currentUser?.role !== 'SUPERVISEUR_CONTENEURS' && (
           <Header

@@ -20,9 +20,11 @@ import {
   AlertTriangle,
   Wrench,
   Users,
-  LogOut
+  LogOut,
+  RotateCcw
 } from 'lucide-react';
 import { UserProfile } from '../types';
+import { SIDEBAR_TAB_COLORS } from '../lib/sidebarColors';
 
 export type SidebarTab =
   | 'planning_auto' // 1. Planification automatisée
@@ -102,28 +104,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }));
   };
 
-  // Palette de couleurs distinctes par élément, pour que chaque sous-menu
-  // soit immédiatement reconnaissable visuellement.
-  const NAV_COLORS: Record<string, { active: string; icon: string }> = {
-    routes_overview: { active: 'bg-blue-950/60 border-blue-500', icon: 'text-blue-400' },
-    fleet_registry: { active: 'bg-emerald-950/60 border-emerald-500', icon: 'text-emerald-400' },
-    preventive_maintenance: { active: 'bg-orange-950/60 border-orange-500', icon: 'text-orange-400' },
-    faults_workflow: { active: 'bg-rose-950/60 border-rose-500', icon: 'text-rose-400' },
-    mechanic_invoices: { active: 'bg-amber-950/60 border-amber-500', icon: 'text-amber-400' },
-    container_cautions: { active: 'bg-cyan-950/60 border-cyan-500', icon: 'text-cyan-400' },
-    route_planning_fuel: { active: 'bg-lime-950/60 border-lime-500', icon: 'text-lime-400' },
-    driver_performance: { active: 'bg-violet-950/60 border-violet-500', icon: 'text-violet-400' },
-    driver_analysis: { active: 'bg-indigo-950/60 border-indigo-500', icon: 'text-indigo-400' },
-    driver_mobile_app: { active: 'bg-sky-950/60 border-sky-500', icon: 'text-sky-400' },
-    barcode_scan: { active: 'bg-fuchsia-950/60 border-fuchsia-500', icon: 'text-fuchsia-400' },
-    customer_feedback: { active: 'bg-pink-950/60 border-pink-500', icon: 'text-pink-400' },
-    realtime_eta: { active: 'bg-teal-950/60 border-teal-500', icon: 'text-teal-400' },
-    hazmat_routing: { active: 'bg-red-950/60 border-red-500', icon: 'text-red-400' },
-    superadmin_users: { active: 'bg-purple-950/60 border-purple-500', icon: 'text-purple-400' },
-  };
-
   const navClass = (tab: SidebarTab) => {
-    const color = NAV_COLORS[tab as string];
+    const color = SIDEBAR_TAB_COLORS[tab as string];
     return `w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
       activeTab === tab
         ? `${color?.active ?? 'bg-slate-800 border-blue-500'} text-white font-semibold border-l-3`
@@ -133,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Couleur de l'icône : toujours sa couleur propre, active ou non — c'est
   // elle qui porte l'identité visuelle de chaque sous-menu.
-  const navIconColor = (tab: SidebarTab) => NAV_COLORS[tab as string]?.icon ?? 'text-slate-400';
+  const navIconColor = (tab: SidebarTab) => SIDEBAR_TAB_COLORS[tab as string]?.icon ?? 'text-slate-400';
 
   return (
     <>
@@ -393,6 +375,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="flex items-center space-x-2">
                     <Star className={`w-3.5 h-3.5 ${navIconColor('customer_feedback')}`} />
                     <span>Retour client</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('container_return');
+                    setIsOpenMobile(false);
+                  }}
+                  className={navClass('container_return')}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RotateCcw className={`w-3.5 h-3.5 ${navIconColor('container_return')}`} />
+                    <span>Preuve de Retour Conteneur</span>
                   </div>
                 </button>
               </div>

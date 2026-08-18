@@ -60,6 +60,7 @@ export interface Container {
   subcontractorTelephone?: string | null;
   subcontractorEntreprise?: string | null;
   driverNom?: string | null;
+  createdByNom?: string | null;
   createdById: string;
   createdAt: string;
   closedAt: string | null;
