@@ -42,6 +42,12 @@ import { listInvoices } from './lib/invoices';
 import { FaultFormInput } from './components/FaultDeclarationModal';
 import { Header } from './components/Header';
 import { Sidebar, SidebarTab } from './components/Sidebar';
+import { ContainerSidebar } from './components/ContainerSidebar';
+import { ContainerRegistryView } from './components/ContainerRegistryView';
+import { ContainerDetailView } from './components/ContainerDetailView';
+import { SubcontractorDriversView } from './components/SubcontractorDriversView';
+import { ContainerReturnView } from './components/ContainerReturnView';
+import { ContainerReportsView } from './components/ContainerReportsView';
 import { RoutesDispatchView } from './components/RoutesDispatchView';
 import { DriverMobileAppView } from './components/DriverMobileAppView';
 import { ModulesDashboard } from './components/ModulesDashboard';
@@ -79,6 +85,7 @@ const STORAGE_KEY_USERS_LIST = 'ym_transit_users_list_v3';
 
 export default function App() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('routes_overview');
+  const [selectedContainerId, setSelectedContainerId] = useState<string | null>(null);
   const [isSmartphoneView, setIsSmartphoneView] = useState<boolean>(false);
 
   // POD Modal State
@@ -230,6 +237,9 @@ export default function App() {
     } else if (user.role === 'SUPER_ADMIN') {
       setSidebarTab('superadmin_users');
       showToast(`Espace Super Admin connecté : ${user.name}`);
+    } else if (user.role === 'SUPERVISEUR_CONTENEURS') {
+      setSidebarTab('container_registry');
+      showToast(`Espace Superviseur Conteneurs connecté : ${user.name}`);
     } else {
       setSidebarTab('routes_overview');
       showToast(`Espace Supervision / Admin connecté : ${user.name}`);
@@ -450,32 +460,43 @@ export default function App() {
 
       {/* Proof of Delivery Modal (POD) */}
       {/* Left Sidebar */}
-      <Sidebar
-        activeTab={sidebarTab}
-        setActiveTab={setSidebarTab}
-        currentUser={currentUser}
-        onLogout={handleLogout}
-      />
+      {currentUser?.role === 'SUPERVISEUR_CONTENEURS' ? (
+        <ContainerSidebar
+          activeTab={sidebarTab}
+          setActiveTab={setSidebarTab}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+        />
+      ) : (
+        <Sidebar
+          activeTab={sidebarTab}
+          setActiveTab={setSidebarTab}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header Bar */}
-        <Header
-          report={report}
-          currentUser={currentUser}
-          activeTab={sidebarTab as any}
-          setActiveTab={(tab: any) => setSidebarTab(tab)}
-          onLogout={handleLogout}
-          onOpenDeclareFault={() => setIsDeclareFaultModalOpen(true)}
-          onOpenCreateInvoice={() => setIsInvoiceModalOpen(true)}
-          onLoadDemo={() => setReport(createDefaultReport())}
-          onSaveDraft={handleSaveDraft}
-          onPrint={() => window.print()}
-          hasDefects={hasDefects}
-          historyCount={history.length}
-          isSmartphoneView={isSmartphoneView}
-          setIsSmartphoneView={setIsSmartphoneView}
-        />
+        {currentUser?.role !== 'SUPERVISEUR_CONTENEURS' && (
+          <Header
+            report={report}
+            currentUser={currentUser}
+            activeTab={sidebarTab as any}
+            setActiveTab={(tab: any) => setSidebarTab(tab)}
+            onLogout={handleLogout}
+            onOpenDeclareFault={() => setIsDeclareFaultModalOpen(true)}
+            onOpenCreateInvoice={() => setIsInvoiceModalOpen(true)}
+            onLoadDemo={() => setReport(createDefaultReport())}
+            onSaveDraft={handleSaveDraft}
+            onPrint={() => window.print()}
+            hasDefects={hasDefects}
+            historyCount={history.length}
+            isSmartphoneView={isSmartphoneView}
+            setIsSmartphoneView={setIsSmartphoneView}
+          />
+        )}
 
         {/* Content Area */}
         <SmartphoneFrameWrapper
@@ -756,6 +777,30 @@ export default function App() {
                 onOpenPODModal={handleOpenPODModalForWaypoint}
               />
             )}
+
+            {/* MODULE GESTION DES CONTENEURS */}
+            {sidebarTab === 'container_registry' && (
+              <ContainerRegistryView
+                driversList={users}
+                onOpenContainer={(id) => {
+                  setSelectedContainerId(id);
+                  setSidebarTab('container_detail');
+                }}
+              />
+            )}
+            {sidebarTab === 'container_detail' && selectedContainerId && (
+              <ContainerDetailView
+                containerId={selectedContainerId}
+                onBack={() => {
+                  setSelectedContainerId(null);
+                  setSidebarTab('container_registry');
+                }}
+                onGoToReturn={() => setSidebarTab('container_return')}
+              />
+            )}
+            {sidebarTab === 'subcontractor_drivers' && <SubcontractorDriversView />}
+            {sidebarTab === 'container_return' && <ContainerReturnView />}
+            {sidebarTab === 'container_reports' && <ContainerReportsView />}
           </main>
         </SmartphoneFrameWrapper>
 

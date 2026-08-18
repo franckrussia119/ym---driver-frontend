@@ -47,7 +47,13 @@ export type SidebarTab =
   | 'route_planning_fuel' // Route planning & Fuel
   | 'driver_performance' // Performance Chauffeurs
   | 'driver_analysis' // Analyse détaillée par chauffeur (nouveau)
-  | 'driver_history'; // Historique Chauffeur (POD, Rapports, Avis)
+  | 'driver_history' // Historique Chauffeur (POD, Rapports, Avis)
+  // --- Module Gestion des Conteneurs (Superviseur Conteneurs) ---
+  | 'container_registry'
+  | 'container_detail'
+  | 'subcontractor_drivers'
+  | 'container_return'
+  | 'container_reports';
 
 
 interface SidebarProps {

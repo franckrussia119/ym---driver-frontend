@@ -1,6 +1,6 @@
 export type ContainerType = '20' | '40' | 'Reefer' | 'Autre';
 
-export type UserRole = 'CHAUFFEUR' | 'MECANICIEN' | 'SUPERVISEUR' | 'ADMIN' | 'SUPER_ADMIN';
+export type UserRole = 'CHAUFFEUR' | 'MECANICIEN' | 'SUPERVISEUR' | 'ADMIN' | 'SUPER_ADMIN' | 'SUPERVISEUR_CONTENEURS';
 
 export interface UserProfile {
   id: string;

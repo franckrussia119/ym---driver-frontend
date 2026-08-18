@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   FileText,
@@ -11,9 +11,12 @@ import {
   Plus,
   ShieldCheck,
   History,
+  Package,
+  Ship,
 } from 'lucide-react';
 import { UserProfile, FaultDeclaration, formatFCFA } from '../types';
 import { ReportListItem } from '../lib/reports';
+import { Container, listContainers } from '../lib/containers';
 
 interface DriverHomeMenuProps {
   currentUser: UserProfile | null;
@@ -39,6 +42,16 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
   // (déclarer une panne, remplir un rapport) doivent rester désactivées :
   // seul le chauffeur lui-même peut les effectuer.
   const isDriverViewing = currentUser?.role === 'CHAUFFEUR';
+
+  const [assignedContainers, setAssignedContainers] = useState<Container[]>([]);
+  useEffect(() => {
+    if (!isDriverViewing) return;
+    listContainers()
+      .then((all) => setAssignedContainers(all.filter((c) => c.status === 'OUVERT')))
+      .catch(() => {
+        /* silencieux : la section conteneurs reste vide si le chargement échoue */
+      });
+  }, [isDriverViewing]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
@@ -145,6 +158,37 @@ export const DriverHomeMenu: React.FC<DriverHomeMenuProps> = ({
             {driverReports.length + driverFaults.length} activité(s)
           </span>
         </div>
+
+        {/* CONTENEURS ASSIGNÉS */}
+        {isDriverViewing && assignedContainers.length > 0 && (
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Conteneurs Assignés
+            </h4>
+            {assignedContainers.map((c) => (
+              <div
+                key={c.id}
+                className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-900 block truncate">{c.containerNumber}</span>
+                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                      <Ship className="w-3 h-3" />
+                      <span>{c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
+                    </div>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-bold text-[10px] rounded-lg shrink-0">
+                  BL {c.blNumber}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* SUBMITTED WEEKLY REPORTS */}
         <div className="space-y-2.5">
