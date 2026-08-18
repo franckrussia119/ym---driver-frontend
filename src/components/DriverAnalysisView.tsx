@@ -21,6 +21,7 @@ import {
 import { formatFCFA } from '../types';
 import { listDrivers, getDriverHistory, DriverListItem, DriverHistoryResponse } from '../lib/driverHistory';
 import { ApiError } from '../lib/api';
+import { displayRef } from '../lib/displayRef';
 
 type PeriodPreset = '7J' | '30J' | 'MOIS' | 'PERSONNALISE' | 'TOUT';
 
@@ -274,6 +275,7 @@ export const DriverAnalysisView: React.FC = () => {
               rows={detail.reports}
               emptyLabel="Aucun rapport enregistré."
               columns={[
+                { header: 'N°', render: (r) => displayRef(r.numeroReference, r.id) },
                 { header: 'Semaine', render: (r) => `${r.semaineDu} → ${r.semaineAu}` },
                 { header: 'Camion', render: (r) => r.immatriculation || '—' },
                 { header: 'Statut', render: (r) => (r.isSubmitted ? 'Soumis' : 'Brouillon'), badge: (r) => (r.isSubmitted ? 'emerald' : 'slate') },
@@ -286,6 +288,7 @@ export const DriverAnalysisView: React.FC = () => {
               rows={detail.faults}
               emptyLabel="Aucune panne déclarée."
               columns={[
+                { header: 'N°', render: (f) => displayRef(f.numeroReference, f.id) },
                 { header: 'Date', render: (f) => f.dateSignalement },
                 { header: 'Catégorie', render: (f) => f.categorie },
                 { header: 'Urgence', render: (f) => f.niveauUrgence },
@@ -298,6 +301,7 @@ export const DriverAnalysisView: React.FC = () => {
               rows={detail.pod}
               emptyLabel="Aucune livraison enregistrée."
               columns={[
+                { header: 'N°', render: (p) => displayRef(p.numeroReference, p.id) },
                 { header: 'BL', render: (p) => p.blNumber },
                 { header: 'Client', render: (p) => p.clientName },
                 {
@@ -316,6 +320,7 @@ export const DriverAnalysisView: React.FC = () => {
                 rows={detail.cautions}
                 emptyLabel="Aucune caution."
                 columns={[
+                  { header: 'N°', render: (c) => displayRef(c.numeroReference, c.id) },
                   { header: 'Conteneur / BL', render: (c) => c.noConteneurBL },
                   { header: 'Montant', render: (c) => formatFCFA(c.montantCautionFCFA) },
                   { header: 'Statut', render: (c) => c.status, badge: (c) => (c.status === 'En cours' ? 'slate' : c.status.includes('temps') ? 'emerald' : 'rose') },

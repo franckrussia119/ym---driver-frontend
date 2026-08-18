@@ -22,6 +22,7 @@ import {
 import { UserProfile } from '../types';
 import { ReportListItem } from '../lib/reports';
 import { DEMO_POD_RECORDS, PODRecord } from './ProofOfDeliveryView';
+import { displayRef } from '../lib/displayRef';
 import { DEMO_FEEDBACKS, CustomerFeedbackRecord } from './CustomerFeedbackView';
 
 interface DriverHistoryViewProps {
@@ -242,7 +243,7 @@ export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
                     filteredPODs.map((rec) => (
                       <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="p-3">
-                          <span className="font-extrabold text-blue-600 block">{rec.id}</span>
+                          <span className="font-extrabold text-blue-600 block">{displayRef(rec.numeroReference, rec.id)}</span>
                           <span className="font-mono text-slate-900 font-bold text-[11px] block">{rec.blNumber}</span>
                           {rec.containerNumber && (
                             <span className="text-[10px] font-mono text-slate-400 block">{rec.containerNumber}</span>
@@ -363,7 +364,7 @@ export const DriverHistoryView: React.FC<DriverHistoryViewProps> = ({
               <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
                 Fiche Officielle - Récépissé
               </span>
-              <h2 className="text-lg font-extrabold text-slate-900">{selectedPOD.id}</h2>
+              <h2 className="text-lg font-extrabold text-slate-900">{displayRef(selectedPOD.numeroReference, selectedPOD.id)}</h2>
               <p className="text-xs text-slate-500">BL : {selectedPOD.blNumber}</p>
             </div>
 

@@ -20,6 +20,7 @@ import {
   UserProfile,
   FaultHistoryEntry,
 } from '../types';
+import { displayRef } from '../lib/displayRef';
 
 interface FaultWorkflowViewProps {
   faults: FaultDeclaration[];
@@ -123,7 +124,7 @@ export const FaultWorkflowView: React.FC<FaultWorkflowViewProps> = ({
                 >
                   <div className="flex items-start justify-between gap-2 mb-1.5">
                     <span className="text-xs font-bold text-slate-900">
-                      {fault.id} · {fault.immatriculation}
+                      {displayRef(fault.numeroReference, fault.id)} · {fault.immatriculation}
                     </span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -160,7 +161,7 @@ export const FaultWorkflowView: React.FC<FaultWorkflowViewProps> = ({
             <div className="p-4 bg-slate-900 text-white flex items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] text-blue-400 font-mono block">
-                  DOSSIER # {selectedFault.id}
+                  DOSSIER # {displayRef(selectedFault.numeroReference, selectedFault.id)}
                 </span>
                 <h3 className="font-bold text-sm text-white">
                   {selectedFault.categorie} — {selectedFault.immatriculation}

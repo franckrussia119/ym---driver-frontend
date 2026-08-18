@@ -29,6 +29,7 @@ import {
 import { listMaintenancePlans, listScheduledMaintenance, createScheduledMaintenance } from '../lib/maintenance';
 import { listVehicles } from '../lib/vehicles';
 import { ApiError } from '../lib/api';
+import { displayRef } from '../lib/displayRef';
 
 interface PreventiveMaintenanceViewProps {
   allTrips: TripLogEntry[];
@@ -420,6 +421,7 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
                           <Truck className="w-4 h-4 text-blue-600 shrink-0" />
                           <span>{plan.vehicleImmatriculation}</span>
                         </div>
+                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{displayRef(plan.numeroReference, plan.id)}</span>
                       </td>
 
                       <td className="py-3.5 px-3 font-semibold text-slate-800">
@@ -535,6 +537,7 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
                   <p className="text-slate-500 text-[11px] mt-0.5">
                     Atelier: {s.mecanicienOuAtelier} — Date prévue: {s.dateProgrammee}
                   </p>
+                  <p className="text-slate-400 text-[10px] font-mono mt-0.5">{displayRef(s.numeroReference, s.id)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="font-mono font-bold text-slate-900">{formatFCFA(s.coutEstimeFCFA)}</span>

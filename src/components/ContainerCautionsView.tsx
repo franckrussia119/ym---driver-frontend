@@ -21,6 +21,7 @@ import { ContainerCaution, CautionStatus, formatFCFA, FleetVehicle } from '../ty
 import { listCautions, createCaution, updateCaution } from '../lib/cautions';
 import { listVehicles } from '../lib/vehicles';
 import { ApiError } from '../lib/api';
+import { displayRef } from '../lib/displayRef';
 
 export const ContainerCautionsView: React.FC = () => {
   const [cautions, setCautions] = useState<ContainerCaution[]>([]);
@@ -415,6 +416,7 @@ export const ContainerCautionsView: React.FC = () => {
                           <Box className="w-4 h-4 text-blue-600 shrink-0" />
                           <span>{c.noConteneurBL}</span>
                         </div>
+                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{displayRef(c.numeroReference, c.id)}</span>
                       </td>
 
                       <td className="py-3.5 px-3">

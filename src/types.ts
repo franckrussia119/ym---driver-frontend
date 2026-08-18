@@ -108,6 +108,7 @@ export interface ReportSignatures {
 
 export interface WeeklyReport {
   id: string;
+  numeroReference?: string;
   createdAt: string;
   submittedAt?: string;
   isSubmitted?: boolean; // Locked for driver edit once submitted
@@ -141,6 +142,7 @@ export interface FaultHistoryEntry {
 
 export interface FaultDeclaration {
   id: string;
+  numeroReference?: string;
   dateSignalement: string;
   chauffeurId: string;
   chauffeurNom: string;
@@ -166,6 +168,7 @@ export interface SparePartItem {
 
 export interface MechanicInvoice {
   id: string;
+  numeroReference?: string;
   faultId?: string;
   truckImmatriculation: string;
   chauffeurNom?: string;
@@ -231,6 +234,7 @@ export type MaintenanceAlertLevel = 'VERT' | 'ORANGE' | 'ROUGE';
 
 export interface MaintenancePlanItem {
   id: string;
+  numeroReference?: string;
   vehicleImmatriculation: string;
   typeIntervention: MaintenanceCategory;
   frequenceKm: number; // e.g. 15000 km
@@ -243,6 +247,7 @@ export interface MaintenancePlanItem {
 
 export interface ScheduledMaintenance {
   id: string;
+  numeroReference?: string;
   planItemId?: string;
   vehicleImmatriculation: string;
   typeIntervention: MaintenanceCategory;
@@ -267,6 +272,7 @@ export type CautionStatus = ContainerCautionStatus;
 
 export interface ContainerCaution {
   id: string;
+  numeroReference?: string;
   noConteneurBL: string;
   ligneMaritime: string; // MSC, Maersk, CMA CGM, Grimaldi, COSCO...
   clientNom: string;

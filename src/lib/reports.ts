@@ -61,6 +61,7 @@ interface BackendSignature {
 
 interface BackendReport {
   id: string;
+  numeroReference?: string;
   createdAt: string;
   submittedAt: string | null;
   isSubmitted: boolean;

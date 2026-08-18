@@ -25,10 +25,12 @@ import {
 import { UserProfile } from '../types';
 import { listPOD, createPOD } from '../lib/pod';
 import { ApiError, uploadFile } from '../lib/api';
+import { displayRef } from '../lib/displayRef';
 import { CAMEROON_DESTINATIONS, getDistanceKm } from '../data/distances';
 
 export interface PODRecord {
   id: string;
+  numeroReference?: string;
   blNumber: string;
   containerNumber: string;
   clientName: string;
@@ -768,7 +770,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                     filteredRecords.map((pod) => (
                       <tr key={pod.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-3.5 px-4">
-                          <span className="font-extrabold text-blue-700 block font-mono">{pod.id}</span>
+                          <span className="font-extrabold text-blue-700 block font-mono">{displayRef(pod.numeroReference, pod.id)}</span>
                           <span className="text-[11px] font-bold text-slate-900 block">{pod.blNumber}</span>
                           <span className="text-[10px] text-slate-400 font-mono block">{pod.containerNumber}</span>
                         </td>
@@ -849,7 +851,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <span className="text-[10px] font-bold text-blue-600 uppercase font-mono">{selectedPOD.id}</span>
+                <span className="text-[10px] font-bold text-blue-600 uppercase font-mono">{displayRef(selectedPOD.numeroReference, selectedPOD.id)}</span>
                 <h3 className="font-extrabold text-base text-slate-900">
                   Récépissé Officiel de Preuve de Livraison
                 </h3>

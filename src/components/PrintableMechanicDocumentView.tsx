@@ -1,5 +1,6 @@
 import React from 'react';
 import { MechanicInvoice, formatFCFA } from '../types';
+import { displayRef } from '../lib/displayRef';
 import { Printer, X, Wrench, ShieldCheck, FileText, Camera, CheckCircle2 } from 'lucide-react';
 
 interface PrintableMechanicDocumentViewProps {
@@ -23,7 +24,7 @@ export const PrintableMechanicDocumentView: React.FC<PrintableMechanicDocumentVi
             <h2 className="text-sm sm:text-base font-bold text-white">
               Aperçu PDF - Rapport & Facture d'Intervention Mécanique
             </h2>
-            <p className="text-xs text-slate-400 font-mono">Document Officiel N° {invoice.id}</p>
+            <p className="text-xs text-slate-400 font-mono">Document Officiel N° {displayRef(invoice.numeroReference, invoice.id)}</p>
           </div>
         </div>
 
@@ -73,7 +74,7 @@ export const PrintableMechanicDocumentView: React.FC<PrintableMechanicDocumentVi
 
             <div className="text-right border-l-2 border-slate-200 pl-4">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">N° Document</span>
-              <span className="text-sm sm:text-base font-mono font-extrabold text-amber-700 block">{invoice.id}</span>
+              <span className="text-sm sm:text-base font-mono font-extrabold text-amber-700 block">{displayRef(invoice.numeroReference, invoice.id)}</span>
               <span className="text-xs text-slate-500 font-medium block mt-1">Date: {invoice.dateIntervention}</span>
               <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-extrabold rounded bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
                 {invoice.status}

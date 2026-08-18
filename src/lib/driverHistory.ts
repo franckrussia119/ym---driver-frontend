@@ -41,6 +41,7 @@ export interface DriverHistoryResponse {
   };
   reports: Array<{
     id: string;
+    numeroReference?: string;
     createdAt: string;
     submittedAt: string | null;
     isSubmitted: boolean;
@@ -51,6 +52,7 @@ export interface DriverHistoryResponse {
   }>;
   faults: Array<{
     id: string;
+    numeroReference?: string;
     dateSignalement: string;
     status: string;
     categorie: string;
@@ -60,6 +62,7 @@ export interface DriverHistoryResponse {
   }>;
   pod: Array<{
     id: string;
+    numeroReference?: string;
     blNumber: string;
     containerNumber: string;
     clientName: string;
@@ -71,8 +74,8 @@ export interface DriverHistoryResponse {
     montantRecuFCFA?: number;
     distanceKm?: number;
   }>;
-  invoices: Array<{ id: string; dateIntervention: string; totalTTC: number; status: string; createdAt: string }>;
-  cautions: Array<{ id: string; noConteneurBL: string; status: string; montantCautionFCFA: number; montantPenaliteFCFA: number | null; dateLimiteRetour: string }>;
+  invoices: Array<{ id: string; numeroReference?: string; dateIntervention: string; totalTTC: number; status: string; createdAt: string }>;
+  cautions: Array<{ id: string; numeroReference?: string; noConteneurBL: string; status: string; montantCautionFCFA: number; montantPenaliteFCFA: number | null; dateLimiteRetour: string }>;
   fuelEntries: Array<{ id: string; date: string; consommationReelleL100: number; consommationRefL100: number; anomalieDetectee: boolean; typeAnomalie: string | null }>;
   scoreHistory: Array<{ periode: string; scoreGlobalPct: number; ponctualitePct: number; moyenneConsoL100: number; rang: number }>;
 }
