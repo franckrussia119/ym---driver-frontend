@@ -102,12 +102,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }));
   };
 
-  const navClass = (tab: SidebarTab) =>
-    `w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+  // Palette de couleurs distinctes par élément, pour que chaque sous-menu
+  // soit immédiatement reconnaissable visuellement.
+  const NAV_COLORS: Record<string, { active: string; icon: string }> = {
+    routes_overview: { active: 'bg-blue-950/60 border-blue-500', icon: 'text-blue-400' },
+    fleet_registry: { active: 'bg-emerald-950/60 border-emerald-500', icon: 'text-emerald-400' },
+    preventive_maintenance: { active: 'bg-orange-950/60 border-orange-500', icon: 'text-orange-400' },
+    faults_workflow: { active: 'bg-rose-950/60 border-rose-500', icon: 'text-rose-400' },
+    mechanic_invoices: { active: 'bg-amber-950/60 border-amber-500', icon: 'text-amber-400' },
+    container_cautions: { active: 'bg-cyan-950/60 border-cyan-500', icon: 'text-cyan-400' },
+    route_planning_fuel: { active: 'bg-lime-950/60 border-lime-500', icon: 'text-lime-400' },
+    driver_performance: { active: 'bg-violet-950/60 border-violet-500', icon: 'text-violet-400' },
+    driver_analysis: { active: 'bg-indigo-950/60 border-indigo-500', icon: 'text-indigo-400' },
+    driver_mobile_app: { active: 'bg-sky-950/60 border-sky-500', icon: 'text-sky-400' },
+    barcode_scan: { active: 'bg-fuchsia-950/60 border-fuchsia-500', icon: 'text-fuchsia-400' },
+    customer_feedback: { active: 'bg-pink-950/60 border-pink-500', icon: 'text-pink-400' },
+    realtime_eta: { active: 'bg-teal-950/60 border-teal-500', icon: 'text-teal-400' },
+    hazmat_routing: { active: 'bg-red-950/60 border-red-500', icon: 'text-red-400' },
+    superadmin_users: { active: 'bg-purple-950/60 border-purple-500', icon: 'text-purple-400' },
+  };
+
+  const navClass = (tab: SidebarTab) => {
+    const color = NAV_COLORS[tab as string];
+    return `w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
       activeTab === tab
-        ? 'bg-slate-800 text-white font-semibold border-l-3 border-blue-500'
+        ? `${color?.active ?? 'bg-slate-800 border-blue-500'} text-white font-semibold border-l-3`
         : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
     }`;
+  };
+
+  // Couleur de l'icône : toujours sa couleur propre, active ou non — c'est
+  // elle qui porte l'identité visuelle de chaque sous-menu.
+  const navIconColor = (tab: SidebarTab) => NAV_COLORS[tab as string]?.icon ?? 'text-slate-400';
 
   return (
     <>
@@ -181,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={navClass('routes_overview')}
           >
             <div className="flex items-center space-x-2.5">
-              <Route className="w-4 h-4 text-blue-400" />
+              <Route className={`w-4 h-4 ${navIconColor('routes_overview')}`} />
               <span>Itinéraires & Routes</span>
             </div>
           </button>
@@ -213,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('fleet_registry')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Truck className="w-3.5 h-3.5 text-blue-400" />
+                    <Truck className={`w-3.5 h-3.5 ${navIconColor('fleet_registry')}`} />
                     <span>Registre Flotte & Docs</span>
                   </div>
                 </button>
@@ -226,7 +252,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('preventive_maintenance')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Wrench className="w-3.5 h-3.5 text-slate-400" />
+                    <Wrench className={`w-3.5 h-3.5 ${navIconColor('preventive_maintenance')}`} />
                     <span>Maintenance Préventive</span>
                   </div>
                 </button>
@@ -239,7 +265,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('faults_workflow')}
                 >
                   <div className="flex items-center space-x-2">
-                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400" />
+                    <AlertTriangle className={`w-3.5 h-3.5 ${navIconColor('faults_workflow')}`} />
                     <span>Pannes & Signalements</span>
                   </div>
                 </button>
@@ -252,7 +278,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('mechanic_invoices')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Wrench className="w-3.5 h-3.5 text-slate-400" />
+                    <Wrench className={`w-3.5 h-3.5 ${navIconColor('mechanic_invoices')}`} />
                     <span>Factures Mécanicien</span>
                   </div>
                 </button>
@@ -265,7 +291,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('container_cautions')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Box className="w-3.5 h-3.5 text-blue-400" />
+                    <Box className={`w-3.5 h-3.5 ${navIconColor('container_cautions')}`} />
                     <span>Suivi Cautions Conteneurs</span>
                   </div>
                 </button>
@@ -278,7 +304,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('route_planning_fuel')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Route className="w-3.5 h-3.5 text-slate-400" />
+                    <Route className={`w-3.5 h-3.5 ${navIconColor('route_planning_fuel')}`} />
                     <span>Optimisation & Carburant</span>
                   </div>
                 </button>
@@ -291,7 +317,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('driver_performance')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Star className="w-3.5 h-3.5 text-amber-400" />
+                    <Star className={`w-3.5 h-3.5 ${navIconColor('driver_performance')}`} />
                     <span>Score & Performance</span>
                   </div>
                 </button>
@@ -304,7 +330,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('driver_analysis')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Users className="w-3.5 h-3.5 text-blue-400" />
+                    <Users className={`w-3.5 h-3.5 ${navIconColor('driver_analysis')}`} />
                     <span>Analyse par Chauffeur</span>
                   </div>
                 </button>
@@ -339,7 +365,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('driver_mobile_app')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Smartphone className="w-3.5 h-3.5 text-slate-400" />
+                    <Smartphone className={`w-3.5 h-3.5 ${navIconColor('driver_mobile_app')}`} />
                     <span>App Mobile Chauffeur</span>
                   </div>
                 </button>
@@ -352,7 +378,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('barcode_scan')}
                 >
                   <div className="flex items-center space-x-2">
-                    <QrCode className="w-3.5 h-3.5 text-slate-400" />
+                    <QrCode className={`w-3.5 h-3.5 ${navIconColor('barcode_scan')}`} />
                     <span>Scan de codes-barres</span>
                   </div>
                 </button>
@@ -365,7 +391,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('customer_feedback')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Star className="w-3.5 h-3.5 text-slate-400" />
+                    <Star className={`w-3.5 h-3.5 ${navIconColor('customer_feedback')}`} />
                     <span>Retour client</span>
                   </div>
                 </button>
@@ -400,7 +426,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('realtime_eta')}
                 >
                   <div className="flex items-center space-x-2">
-                    <Navigation className="w-3.5 h-3.5 text-blue-400" />
+                    <Navigation className={`w-3.5 h-3.5 ${navIconColor('realtime_eta')}`} />
                     <span>Suivi temps réel & ETA</span>
                   </div>
                 </button>
@@ -413,7 +439,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={navClass('hazmat_routing')}
                 >
                   <div className="flex items-center space-x-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                    <ShieldCheck className={`w-3.5 h-3.5 ${navIconColor('hazmat_routing')}`} />
                     <span>Poids lourd & Hazmat</span>
                   </div>
                 </button>
@@ -431,7 +457,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={navClass('superadmin_users')}
             >
               <div className="flex items-center space-x-2.5">
-                <Users className="w-4 h-4 text-slate-400" />
+                <Users className={`w-4 h-4 ${navIconColor('superadmin_users')}`} />
                 <span>Utilisateurs & Rôles</span>
               </div>
             </button>
