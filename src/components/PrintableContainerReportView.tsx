@@ -118,8 +118,12 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
                   <td className="px-3 py-2 border border-slate-300">{report.dateFermeture ? new Date(report.dateFermeture).toLocaleDateString('fr-FR') : '—'}</td>
                 </tr>
                 <tr>
-                  <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">TRANSPORTEUR</td>
+                  <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">CHAUFFEUR — LIVRAISON</td>
                   <td className="px-3 py-2 border border-slate-300" colSpan={3}>{report.carrier.label}</td>
+                </tr>
+                <tr>
+                  <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">CHAUFFEUR — RETOUR</td>
+                  <td className="px-3 py-2 border border-slate-300" colSpan={3}>{report.retourPar || 'Pas encore retourné'}</td>
                 </tr>
               </tbody>
             </table>
@@ -130,7 +134,7 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
             <div className="bg-slate-900 text-white font-extrabold text-xs uppercase px-3 py-1.5 mb-2 rounded-t">
               2. RÉSUMÉ
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <div className="border border-slate-300 rounded p-2.5 text-center">
                 <span className="text-[9px] font-bold text-slate-400 uppercase block">Jours</span>
                 <span className="text-lg font-black text-slate-900 block">{report.totalDays}</span>
@@ -140,12 +144,16 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
                 <span className="text-sm font-black text-emerald-700 block mt-1">{formatFCFA(report.montantDroitsTaxesFCFA)}</span>
               </div>
               <div className="border border-slate-300 rounded p-2.5 text-center">
-                <span className="text-[9px] font-bold text-slate-400 uppercase block">Étapes</span>
-                <span className="text-lg font-black text-slate-900 block">{report.stepsCompleted}/{report.stepsTotal}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Frais de Retour</span>
+                <span className="text-sm font-black text-amber-700 block mt-1">{formatFCFA(report.montantFraisRetourFCFA)}</span>
+              </div>
+              <div className="border border-slate-300 rounded p-2.5 text-center bg-slate-50">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Coût Total</span>
+                <span className="text-sm font-black text-slate-900 block mt-1">{formatFCFA(report.montantTotalFCFA)}</span>
               </div>
               <div className="border border-slate-300 rounded p-2.5 text-center">
-                <span className="text-[9px] font-bold text-slate-400 uppercase block">Documents Validés</span>
-                <span className="text-lg font-black text-slate-900 block">{report.documentsValidated}/{report.documentsCount}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Étapes</span>
+                <span className="text-lg font-black text-slate-900 block">{report.stepsCompleted}/{report.stepsTotal}</span>
               </div>
             </div>
           </div>

@@ -132,14 +132,20 @@ export const ContainerReportsView: React.FC = () => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <StatCard icon={Clock} label="Jours" value={report.totalDays} sub={report.isOuvert ? 'Toujours ouvert' : 'Clôturé'} accent={report.isOuvert ? 'blue' : 'slate'} />
-              <StatCard icon={Wallet} label="Droits & Taxes" value={formatFCFA(report.montantDroitsTaxesFCFA)} accent="emerald" />
+              <StatCard icon={Wallet} label="Coût Total" value={formatFCFA(report.montantTotalFCFA)} sub={`Droits: ${formatFCFA(report.montantDroitsTaxesFCFA)} · Retour: ${formatFCFA(report.montantFraisRetourFCFA)}`} accent="emerald" />
               <StatCard icon={CheckCircle2} label="Étapes Terminées" value={`${report.stepsCompleted}/${report.stepsTotal}`} accent={report.stepsBlocked > 0 ? 'rose' : 'emerald'} />
               <StatCard icon={Package} label="Documents Validés" value={`${report.documentsValidated}/${report.documentsCount}`} accent="blue" />
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
-              <span className="text-xs font-semibold text-slate-500 block mb-1">Transporteur</span>
-              <span className="text-sm font-bold text-slate-900">{report.carrier.label}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+                <span className="text-xs font-semibold text-slate-500 block mb-1">Chauffeur — Livraison (aller)</span>
+                <span className="text-sm font-bold text-slate-900">{report.carrier.label}</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+                <span className="text-xs font-semibold text-slate-500 block mb-1">Chauffeur — Retour (à vide)</span>
+                <span className="text-sm font-bold text-slate-900">{report.retourPar || 'Pas encore retourné'}</span>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">

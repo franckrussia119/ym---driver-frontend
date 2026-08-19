@@ -284,7 +284,7 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
                       </div>
                       <div>
                         <label className="font-bold text-slate-600 block mb-1">Date</label>
-                        <input type="date" value={stepDate} onChange={(e) => setStepDate(e.target.value)}
+                        <input type="date" max={new Date().toISOString().split('T')[0]} value={stepDate} onChange={(e) => setStepDate(e.target.value)}
                           className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg" />
                       </div>
                     </div>

@@ -9,6 +9,7 @@ import {
   UserRound,
   Ship,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import {
@@ -17,7 +18,7 @@ import {
   createContainer,
   assignCarrier,
 } from '../lib/containers';
-import { listSubcontractors, SubcontractorDriver } from '../lib/subcontractors';
+import { listSubcontractorDrivers, SubcontractorDriver } from '../lib/subcontractors';
 import { ApiError } from '../lib/api';
 
 interface ContainerRegistryViewProps {
@@ -42,7 +43,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [c, s] = await Promise.all([listContainers(), listSubcontractors()]);
+      const [c, s] = await Promise.all([listContainers(), listSubcontractorDrivers()]);
       setContainers(c);
       setSubcontractors(s);
     } catch (err) {
@@ -64,6 +65,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
   const [containerNumber, setContainerNumber] = useState('');
   const [size, setSize] = useState<'20' | '40'>('40');
   const [notes, setNotes] = useState('');
+  const [dateLimiteRetour, setDateLimiteRetour] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -73,6 +75,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
     setTerminal('');
     setContainerNumber('');
     setSize('40');
+    setDateLimiteRetour('');
     setNotes('');
     setSaveError(null);
   };
@@ -86,7 +89,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
     setIsSaving(true);
     setSaveError(null);
     try {
-      const created = await createContainer({ blNumber, port, terminal, containerNumber, size, notes: notes || undefined });
+      const created = await createContainer({ blNumber, port, terminal, containerNumber, size, dateLimiteRetour: dateLimiteRetour || undefined, notes: notes || undefined });
       await fetchAll();
       setIsCreateOpen(false);
       resetForm();
@@ -226,6 +229,26 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
                 <Ship className="w-3 h-3" />
                 <span>{c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
               </div>
+              {c.status === 'OUVERT' && c.dateLimiteRetour && (() => {
+                const daysLeft = Math.round((new Date(c.dateLimiteRetour).getTime() - Date.now()) / 86_400_000);
+                if (daysLeft < 0) {
+                  return (
+                    <div className="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1 w-fit">
+                      <AlertTriangle className="w-3 h-3" />
+                      Détention : {Math.abs(daysLeft)} jour(s) de retard
+                    </div>
+                  );
+                }
+                if (daysLeft <= 2) {
+                  return (
+                    <div className="flex items-center gap-1.5 mt-2 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1 w-fit">
+                      <AlertTriangle className="w-3 h-3" />
+                      Échéance dans {daysLeft} jour(s)
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <div className="flex items-center gap-1.5 mt-2 text-[11px]">
                 {c.carrierType === 'CHAUFFEUR_INTERNE' ? (
                   <><UserRound className="w-3.5 h-3.5 text-emerald-600" /><span className="text-slate-700 font-semibold">{c.driverNom || 'Chauffeur assigné'}</span></>
@@ -299,6 +322,16 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-semibold" />
               </div>
               <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Date Limite de Retour (franchise / détention)
+                </label>
+                <input type="date" value={dateLimiteRetour} onChange={(e) => setDateLimiteRetour(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Date à partir de laquelle des frais de détention peuvent s'appliquer. Peut être renseignée plus tard.
+                </p>
+              </div>
+              <div>
                 <label className="font-bold text-slate-700 block mb-1">Notes (optionnel)</label>
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
@@ -363,7 +396,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
                     <option value="">— Choisir —</option>
                     {subcontractors.map((s) => (
-                      <option key={s.id} value={s.id}>{s.nom} {s.nomEntreprise ? `(${s.nomEntreprise})` : ''}</option>
+                      <option key={s.id} value={s.id}>{s.nom} {s.companyNom ? `(${s.companyNom})` : ''}</option>
                     ))}
                   </select>
                   {subcontractors.length === 0 && (

@@ -38,9 +38,11 @@ export interface ContainerReturn {
   containerId: string;
   dateRetourVide: string;
   depotRetour: string;
+  fraisRetourFCFA: number;
   photoUrl: string | null;
   notes: string | null;
   filledById: string;
+  filledByNom?: string | null;
   createdAt: string;
 }
 
@@ -64,6 +66,7 @@ export interface Container {
   createdById: string;
   createdAt: string;
   closedAt: string | null;
+  dateLimiteRetour: string | null;
   notes: string | null;
 }
 
@@ -75,13 +78,17 @@ export interface ContainerWithDetails extends Container {
 }
 
 export interface ContainerReport {
-  container: Pick<Container, 'id' | 'numeroReference' | 'blNumber' | 'containerNumber' | 'port' | 'terminal' | 'size' | 'status'>;
+  container: Pick<Container, 'id' | 'numeroReference' | 'blNumber' | 'containerNumber' | 'port' | 'terminal' | 'size' | 'status' | 'dateLimiteRetour'>;
   isOuvert: boolean;
   dateOuverture: string;
   dateFermeture: string | null;
   totalDays: number;
+  detention: { jours: number | null; statut: 'DANS_LES_DELAIS' | 'EN_RETARD' | 'NON_DEFINI' };
   carrier: { type: CarrierType | null; label: string };
+  retourPar: string | null;
   montantDroitsTaxesFCFA: number;
+  montantFraisRetourFCFA: number;
+  montantTotalFCFA: number;
   stepsCompleted: number;
   stepsTotal: number;
   stepsBlocked: number;
@@ -96,6 +103,13 @@ export async function listContainers(): Promise<Container[]> {
   return api.get<Container[]>('/api/containers');
 }
 
+// Pool ouvert : conteneurs livrés (preuve de livraison faite) mais pas
+// encore retournés — visible et accessible à TOUS les chauffeurs, pas
+// seulement celui qui a livré.
+export async function listPendingReturnContainers(): Promise<Container[]> {
+  return api.get<Container[]>('/api/containers/pending-return');
+}
+
 export async function getContainer(id: string): Promise<ContainerWithDetails> {
   return api.get<ContainerWithDetails>(`/api/containers/${id}`);
 }
@@ -106,11 +120,16 @@ export interface CreateContainerInput {
   terminal: string;
   containerNumber: string;
   size: ContainerSize;
+  dateLimiteRetour?: string;
   notes?: string;
 }
 
 export async function createContainer(input: CreateContainerInput): Promise<ContainerWithDetails> {
   return api.post<ContainerWithDetails>('/api/containers', input);
+}
+
+export async function setContainerDeadline(id: string, dateLimiteRetour: string): Promise<Container> {
+  return api.patch<Container>(`/api/containers/${id}/deadline`, { dateLimiteRetour });
 }
 
 export async function assignCarrier(
@@ -145,7 +164,7 @@ export async function updateDocumentStatus(
 
 export async function submitContainerReturn(
   containerId: string,
-  input: { dateRetourVide: string; depotRetour: string; photoUrl?: string; notes?: string }
+  input: { dateRetourVide: string; depotRetour: string; fraisRetourFCFA: number; photoUrl?: string; notes?: string }
 ): Promise<ContainerWithDetails> {
   return api.post<ContainerWithDetails>(`/api/containers/${containerId}/return`, input);
 }

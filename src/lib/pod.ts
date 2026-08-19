@@ -8,6 +8,7 @@ export async function listPOD(): Promise<PODRecord[]> {
 export interface CreatePODInput {
   blNumber: string;
   containerNumber: string;
+  containerId?: string;
   clientName: string;
   deliveryAddress: string;
   driverName: string;

@@ -21,12 +21,15 @@ import {
   Loader2,
   ChevronRight,
   ArrowLeft,
+  RotateCcw,
+  Package,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { listPOD, createPOD } from '../lib/pod';
 import { ApiError, uploadFile } from '../lib/api';
 import { displayRef } from '../lib/displayRef';
 import { CAMEROON_DESTINATIONS, getDistanceKm } from '../data/distances';
+import { Container, listContainers, listPendingReturnContainers, submitContainerReturn } from '../lib/containers';
 
 export interface PODRecord {
   id: string;
@@ -64,11 +67,82 @@ export const DEMO_POD_RECORDS: PODRecord[] = [];
 export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
   currentUser,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'MENU' | 'CREATE' | 'HISTORY'>('MENU');
+  const [activeSubTab, setActiveSubTab] = useState<'MENU' | 'CREATE' | 'HISTORY' | 'RETURN'>('MENU');
   const [podRecords, setPodRecords] = useState<PODRecord[]>([]);
   const [isLoadingPOD, setIsLoadingPOD] = useState(true);
   const [podLoadError, setPodLoadError] = useState<string | null>(null);
   const [isSubmittingPOD, setIsSubmittingPOD] = useState(false);
+
+  // Formulaire "Preuve de Retour Conteneur Vide"
+  const [returnContainerId, setReturnContainerId] = useState('');
+  const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
+  const [returnDepot, setReturnDepot] = useState('');
+  const [returnFrais, setReturnFrais] = useState(0);
+  const [returnNotes, setReturnNotes] = useState('');
+  const [returnPhotoUrl, setReturnPhotoUrl] = useState<string | null>(null);
+  const [isUploadingReturnPhoto, setIsUploadingReturnPhoto] = useState(false);
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+  const [returnError, setReturnError] = useState<string | null>(null);
+  const [returnSuccess, setReturnSuccess] = useState<string | null>(null);
+
+  const handleReturnPhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setIsUploadingReturnPhoto(true);
+    setReturnError(null);
+    try {
+      setReturnPhotoUrl(await uploadFile(file, file.name));
+    } catch (err) {
+      setReturnError(err instanceof ApiError ? err.message : "Échec de l'envoi de la photo.");
+    } finally {
+      setIsUploadingReturnPhoto(false);
+    }
+  };
+
+  const handleSubmitReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!returnContainerId) {
+      setReturnError('Veuillez choisir le conteneur à retourner.');
+      return;
+    }
+    if (!returnDepot.trim()) {
+      setReturnError('Veuillez indiquer le dépôt de retour.');
+      return;
+    }
+    if (returnDate > new Date().toISOString().split('T')[0]) {
+      setReturnError('La date de retour ne peut pas être dans le futur.');
+      return;
+    }
+    setIsSubmittingReturn(true);
+    setReturnError(null);
+    try {
+      const target = pendingReturnContainers.find((c) => c.id === returnContainerId);
+      await submitContainerReturn(returnContainerId, {
+        dateRetourVide: returnDate,
+        depotRetour: returnDepot,
+        fraisRetourFCFA: returnFrais,
+        photoUrl: returnPhotoUrl || undefined,
+        notes: returnNotes || undefined,
+      });
+      setReturnSuccess(
+        `Conteneur ${target?.containerNumber || ''} retourné avec succès — ajouté automatiquement à votre rapport hebdomadaire.`
+      );
+      setReturnContainerId('');
+      setReturnDate(new Date().toISOString().split('T')[0]);
+      setReturnDepot('');
+      setReturnFrais(0);
+      setReturnNotes('');
+      setReturnPhotoUrl(null);
+      await fetchPendingReturnContainers();
+      setTimeout(() => setReturnSuccess(null), 5000);
+    } catch (err) {
+      setReturnError(err instanceof ApiError ? err.message : "Échec de l'enregistrement du retour.");
+    } finally {
+      setIsSubmittingReturn(false);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedPOD, setSelectedPOD] = useState<PODRecord | null>(null);
@@ -90,9 +164,56 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
     fetchPODRecords();
   }, [fetchPODRecords]);
 
+  // Conteneurs assignés au chauffeur pour LIVRAISON — sert à verrouiller le
+  // champ conteneur de la Preuve de Livraison sur des conteneurs réels.
+  const [assignedContainers, setAssignedContainers] = useState<Container[]>([]);
+  const [isLoadingContainers, setIsLoadingContainers] = useState(true);
+  const [containersLoadError, setContainersLoadError] = useState<string | null>(null);
+
+  const fetchAssignedContainers = React.useCallback(async () => {
+    setIsLoadingContainers(true);
+    setContainersLoadError(null);
+    try {
+      const all = await listContainers();
+      setAssignedContainers(all.filter((c) => c.status === 'OUVERT'));
+    } catch (err) {
+      setContainersLoadError(err instanceof ApiError ? err.message : 'Impossible de charger vos conteneurs assignés.');
+    } finally {
+      setIsLoadingContainers(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchAssignedContainers();
+  }, [fetchAssignedContainers]);
+
+  // Pool ouvert de RETOUR : conteneurs déjà livrés (preuve de livraison
+  // faite), pas encore retournés — visible à TOUS les chauffeurs, pas
+  // seulement celui qui a livré. C'est l'étape suivante du pipeline.
+  const [pendingReturnContainers, setPendingReturnContainers] = useState<Container[]>([]);
+  const [isLoadingPendingReturn, setIsLoadingPendingReturn] = useState(true);
+  const [pendingReturnLoadError, setPendingReturnLoadError] = useState<string | null>(null);
+
+  const fetchPendingReturnContainers = React.useCallback(async () => {
+    setIsLoadingPendingReturn(true);
+    setPendingReturnLoadError(null);
+    try {
+      setPendingReturnContainers(await listPendingReturnContainers());
+    } catch (err) {
+      setPendingReturnLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les conteneurs disponibles au retour.');
+    } finally {
+      setIsLoadingPendingReturn(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchPendingReturnContainers();
+  }, [fetchPendingReturnContainers]);
+
   // Modal Form State for New POD
   const [blNumber, setBlNumber] = useState('');
   const [containerNumber, setContainerNumber] = useState('');
+  const [selectedContainerId, setSelectedContainerId] = useState('');
   const [clientName, setClientName] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [recipientName, setRecipientName] = useState('');
@@ -186,6 +307,10 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
 
   const handleCreatePOD = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedContainerId) {
+      alert('Veuillez choisir le conteneur — seul un conteneur réellement enregistré et qui vous est assigné peut être livré.');
+      return;
+    }
     if (!blNumber.trim() || !clientName.trim() || !recipientName.trim()) {
       alert('Veuillez remplir le N° BL, le nom du client et du récepteur.');
       return;
@@ -208,6 +333,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
       await createPOD({
         blNumber,
         containerNumber: containerNumber || 'N/A',
+        containerId: selectedContainerId,
         clientName,
         deliveryAddress,
         driverName: currentUser?.name || 'Chauffeur YM-TRANSIT',
@@ -230,6 +356,7 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
       // Reset Form
       setBlNumber('');
       setContainerNumber('');
+      setSelectedContainerId('');
       setClientName('');
       setDeliveryAddress('');
       setRecipientName('');
@@ -349,10 +476,10 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
         )}
       </div>
 
-      {/* MENU LAUNCHER: TWO CLEAN ACTION CARDS (WHEN ACTIVE SUB TAB IS MENU) */}
+      {/* MENU LAUNCHER: THREE CLEAN ACTION CARDS (WHEN ACTIVE SUB TAB IS MENU) */}
       {activeSubTab === 'MENU' && (
-        <div className="max-w-2xl mx-auto space-y-4 py-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="max-w-4xl mx-auto space-y-4 py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* ACTION CARD 1: CREATE POD */}
             <button
               type="button"
@@ -378,7 +505,32 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               </div>
             </button>
 
-            {/* ACTION CARD 2: HISTORY POD */}
+            {/* ACTION CARD 2: RETURN EMPTY CONTAINER */}
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('RETURN')}
+              className="group relative bg-white hover:bg-amber-50/50 p-5 rounded-2xl border-2 border-slate-200 hover:border-amber-500 shadow-sm transition-all duration-200 text-left cursor-pointer flex flex-col justify-between min-h-[150px] active:scale-[0.99]"
+            >
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                  <RotateCcw className="w-6 h-6" />
+                </div>
+                <span className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-amber-100 text-slate-400 group-hover:text-amber-600 flex items-center justify-center transition-colors">
+                  <Plus className="w-4 h-4" />
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-slate-900 group-hover:text-amber-700 transition-colors">
+                  Preuve de Retour Conteneur Vide
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-snug">
+                  Déclarez le retour du conteneur vide au dépôt — s'ajoute directement à votre rapport hebdomadaire.
+                </p>
+              </div>
+            </button>
+
+            {/* ACTION CARD 3: HISTORY POD */}
             <button
               type="button"
               onClick={() => setActiveSubTab('HISTORY')}
@@ -420,31 +572,50 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
           </div>
 
           <form onSubmit={handleCreatePOD} className="space-y-4 text-xs">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {isLoadingContainers ? (
+              <div className="p-6 flex items-center justify-center text-slate-400 gap-2 bg-slate-50 rounded-xl border border-slate-200">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Chargement de vos conteneurs assignés…
+              </div>
+            ) : assignedContainers.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                <Package className="w-7 h-7 text-amber-400 mx-auto mb-2" />
+                <p className="text-amber-800 font-semibold">
+                  Aucun conteneur ouvert ne vous est actuellement assigné.
+                </p>
+                <p className="text-amber-700 mt-1">
+                  Le Superviseur Conteneurs doit d'abord créer et vous assigner un conteneur avant que vous puissiez enregistrer une preuve de livraison.
+                </p>
+              </div>
+            ) : (
               <div>
                 <label className="font-bold text-slate-700 block mb-1">
-                  N° Bon de Livraison (BL) <span className="text-rose-500">*</span>
+                  Conteneur <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   required
-                  value={blNumber}
-                  onChange={(e) => setBlNumber(e.target.value)}
-                  placeholder="Ex: BL-2026-904"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-xs font-semibold text-slate-900"
-                />
+                  value={selectedContainerId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedContainerId(id);
+                    const c = assignedContainers.find((x) => x.id === id);
+                    setBlNumber(c?.blNumber || '');
+                    setContainerNumber(c?.containerNumber || '');
+                  }}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-xs font-bold text-slate-900"
+                >
+                  <option value="">— Choisir le conteneur assigné —</option>
+                  {assignedContainers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.containerNumber} · BL {c.blNumber} · {c.port === 'Douala' ? 'PAD' : 'PAK'}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Seuls les conteneurs réellement enregistrés et qui vous sont assignés apparaissent ici.
+                </p>
               </div>
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">N° Conteneur</label>
-                <input
-                  type="text"
-                  value={containerNumber}
-                  onChange={(e) => setContainerNumber(e.target.value)}
-                  placeholder="Ex: MSCU-892014-9"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
-                />
-              </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -688,6 +859,166 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* SUB-VIEW: PREUVE DE RETOUR CONTENEUR VIDE */}
+      {activeSubTab === 'RETURN' && (
+        <div className="max-w-lg mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-4">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('MENU')}
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Retour au menu
+          </button>
+
+          <div>
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <RotateCcw className="w-4.5 h-4.5 text-amber-600" />
+              Preuve de Retour Conteneur Vide
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Une fois validé, ce retour clôture le conteneur et s'ajoute automatiquement à votre rapport hebdomadaire.
+              Ces conteneurs ont déjà été livrés — n'importe quel chauffeur disponible peut les ramener au port.
+            </p>
+          </div>
+
+          {returnSuccess && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl p-3">
+              {returnSuccess}
+            </div>
+          )}
+
+          {isLoadingPendingReturn ? (
+            <div className="p-8 flex items-center justify-center text-slate-400 gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Chargement des conteneurs disponibles…
+            </div>
+          ) : pendingReturnLoadError ? (
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-3 flex items-center justify-between">
+              {pendingReturnLoadError}
+              <button onClick={fetchPendingReturnContainers} className="underline cursor-pointer">Réessayer</button>
+            </div>
+          ) : pendingReturnContainers.length === 0 ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-center">
+              <Package className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-xs text-slate-500">
+                Aucun conteneur vide en attente de retour pour l'instant. Un conteneur apparaît ici une fois sa preuve de livraison complétée.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmitReturn} className="space-y-3.5 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Conteneur à Retourner *</label>
+                <select
+                  required
+                  value={returnContainerId}
+                  onChange={(e) => setReturnContainerId(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900"
+                >
+                  <option value="">— Choisir —</option>
+                  {pendingReturnContainers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.containerNumber} · BL {c.blNumber} · {c.port === 'Douala' ? 'PAD' : 'PAK'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Date de Retour (vide) *</label>
+                <input
+                  type="date"
+                  required
+                  max={new Date().toISOString().split('T')[0]}
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Dépôt de Retour *</label>
+                <input
+                  type="text"
+                  required
+                  value={returnDepot}
+                  onChange={(e) => setReturnDepot(e.target.value)}
+                  placeholder="Ex: Dépôt Bonabéri, Douala"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Frais de Retour (FCFA)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={returnFrais}
+                  onChange={(e) => setReturnFrais(Number(e.target.value))}
+                  placeholder="0"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Coûts engagés pour ramener le conteneur vide (transport, frais divers…) — apparaîtra dans le rapport final.
+                </p>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Photo Justificative (optionnel)</label>
+                {returnPhotoUrl ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 max-h-40">
+                    <img src={returnPhotoUrl} alt="Retour conteneur" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setReturnPhotoUrl(null)}
+                      className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-full cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-1.5 py-3 bg-slate-100 hover:bg-slate-200 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer font-bold text-slate-700">
+                    {isUploadingReturnPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4 text-amber-600" />}
+                    <span>{isUploadingReturnPhoto ? 'Envoi…' : 'Prendre une photo'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleReturnPhotoSelected}
+                      disabled={isUploadingReturnPhoto}
+                    />
+                  </label>
+                )}
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Notes</label>
+                <textarea
+                  value={returnNotes}
+                  onChange={(e) => setReturnNotes(e.target.value)}
+                  rows={2}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                />
+              </div>
+
+              {returnError && (
+                <p className="text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{returnError}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmittingReturn || isUploadingReturnPhoto}
+                className="w-full py-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isSubmittingReturn ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                <span>{isSubmittingReturn ? 'Enregistrement…' : 'Valider le Retour du Conteneur'}</span>
+              </button>
+            </form>
+          )}
         </div>
       )}
 

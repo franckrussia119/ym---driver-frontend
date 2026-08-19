@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react';
-import { Container, listContainers, submitContainerReturn } from '../lib/containers';
+import { Container, listPendingReturnContainers, submitContainerReturn } from '../lib/containers';
 import { uploadFile, ApiError } from '../lib/api';
 
 export const ContainerReturnView: React.FC = () => {
@@ -20,8 +20,7 @@ export const ContainerReturnView: React.FC = () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const all = await listContainers();
-      setContainers(all.filter((c) => c.status === 'OUVERT'));
+      setContainers(await listPendingReturnContainers());
     } catch (err) {
       setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les conteneurs.');
     } finally {
@@ -36,6 +35,7 @@ export const ContainerReturnView: React.FC = () => {
   const [target, setTarget] = useState<Container | null>(null);
   const [dateRetourVide, setDateRetourVide] = useState(new Date().toISOString().split('T')[0]);
   const [depotRetour, setDepotRetour] = useState('');
+  const [fraisRetour, setFraisRetour] = useState(0);
   const [notes, setNotes] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -47,6 +47,7 @@ export const ContainerReturnView: React.FC = () => {
     setTarget(c);
     setDateRetourVide(new Date().toISOString().split('T')[0]);
     setDepotRetour('');
+    setFraisRetour(0);
     setNotes('');
     setPhotoUrl(null);
     setSaveError(null);
@@ -74,12 +75,17 @@ export const ContainerReturnView: React.FC = () => {
       setSaveError('Veuillez indiquer le dépôt de retour.');
       return;
     }
+    if (dateRetourVide > new Date().toISOString().split('T')[0]) {
+      setSaveError('La date de retour ne peut pas être dans le futur.');
+      return;
+    }
     setIsSaving(true);
     setSaveError(null);
     try {
       await submitContainerReturn(target.id, {
         dateRetourVide,
         depotRetour,
+        fraisRetourFCFA: fraisRetour,
         photoUrl: photoUrl || undefined,
         notes: notes || undefined,
       });
@@ -127,7 +133,7 @@ export const ContainerReturnView: React.FC = () => {
       )}
       {!isLoading && containers.length === 0 && !loadError && (
         <div className="p-10 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">
-          Aucun conteneur ouvert en attente de retour.
+          Aucun conteneur livré en attente de retour. Un conteneur apparaît ici une fois sa preuve de livraison complétée.
         </div>
       )}
 
@@ -169,7 +175,7 @@ export const ContainerReturnView: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Date de Retour (vide) *</label>
-                <input type="date" required value={dateRetourVide} onChange={(e) => setDateRetourVide(e.target.value)}
+                <input type="date" required max={new Date().toISOString().split('T')[0]} value={dateRetourVide} onChange={(e) => setDateRetourVide(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
               </div>
               <div>
@@ -177,6 +183,13 @@ export const ContainerReturnView: React.FC = () => {
                 <input type="text" required value={depotRetour} onChange={(e) => setDepotRetour(e.target.value)}
                   placeholder="Ex: Dépôt Bonabéri, Douala"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Frais de Retour (FCFA)</label>
+                <input type="number" min={0} value={fraisRetour} onChange={(e) => setFraisRetour(Number(e.target.value))}
+                  placeholder="0"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+                <p className="text-[10px] text-slate-400 mt-1">Apparaîtra dans le rapport final du conteneur.</p>
               </div>
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Photo Justificative (optionnel)</label>
