@@ -66,6 +66,7 @@ export const ContainerReportsView: React.FC = () => {
   // Filtres — Rapport Opérations
   const [opsPortFilter, setOpsPortFilter] = useState<'ALL' | 'Douala' | 'Kribi'>('ALL');
   const [opsStatusFilter, setOpsStatusFilter] = useState<'ALL' | 'OUVERT' | 'FERME'>('ALL');
+  const [opsCarrierFilter, setOpsCarrierFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
   const [opsFromDate, setOpsFromDate] = useState('');
   const [opsToDate, setOpsToDate] = useState('');
   const [opsAgentFilter, setOpsAgentFilter] = useState('');
@@ -201,9 +202,27 @@ export const ContainerReportsView: React.FC = () => {
   const parPort = { Douala: containers.filter((c) => c.port === 'Douala').length, Kribi: containers.filter((c) => c.port === 'Kribi').length };
   const nonAssignes = containers.filter((c) => c.status === 'OUVERT' && !c.carrierType).length;
 
+  // Un clic sur une carte KPI ouvre directement le Rapport Opérations avec
+  // le filtre correspondant déjà appliqué — pas besoin de re-filtrer à la main.
+  const goToOperationsWith = (filters: {
+    status?: 'ALL' | 'OUVERT' | 'FERME';
+    port?: 'ALL' | 'Douala' | 'Kribi';
+    carrier?: 'ALL' | 'ASSIGNED' | 'UNASSIGNED';
+  }) => {
+    setOpsStatusFilter(filters.status ?? 'ALL');
+    setOpsPortFilter(filters.port ?? 'ALL');
+    setOpsCarrierFilter(filters.carrier ?? 'ALL');
+    setOpsFromDate('');
+    setOpsToDate('');
+    setOpsAgentFilter('');
+    setViewMode('operations');
+  };
+
   const filteredOps = containers.filter((c) => {
     if (opsPortFilter !== 'ALL' && c.port !== opsPortFilter) return false;
     if (opsStatusFilter !== 'ALL' && c.status !== opsStatusFilter) return false;
+    if (opsCarrierFilter === 'ASSIGNED' && !c.carrierType) return false;
+    if (opsCarrierFilter === 'UNASSIGNED' && c.carrierType) return false;
     if (opsFromDate && c.createdAt < opsFromDate) return false;
     if (opsToDate && c.createdAt > `${opsToDate}T23:59:59`) return false;
     if (opsAgentFilter && !(c.createdByNom || '').toLowerCase().includes(opsAgentFilter.toLowerCase())) return false;
@@ -267,6 +286,15 @@ export const ContainerReportsView: React.FC = () => {
               </select>
             </div>
             <div>
+              <label className="text-[10px] font-bold text-slate-500 block mb-1">Transporteur</label>
+              <select value={opsCarrierFilter} onChange={(e) => setOpsCarrierFilter(e.target.value as any)}
+                className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold">
+                <option value="ALL">Tous</option>
+                <option value="ASSIGNED">Assigné</option>
+                <option value="UNASSIGNED">Sans transporteur</option>
+              </select>
+            </div>
+            <div>
               <label className="text-[10px] font-bold text-slate-500 block mb-1">Du</label>
               <input type="date" value={opsFromDate} onChange={(e) => setOpsFromDate(e.target.value)}
                 className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg" />
@@ -285,8 +313,17 @@ export const ContainerReportsView: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-4 bg-slate-50 border-b border-slate-200">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <h3 className="font-bold text-sm text-slate-900">{filteredOps.length} conteneur(s)</h3>
+              {(opsStatusFilter !== 'ALL' || opsPortFilter !== 'ALL' || opsCarrierFilter !== 'ALL' || opsFromDate || opsToDate || opsAgentFilter) && (
+                <button
+                  type="button"
+                  onClick={() => goToOperationsWith({})}
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                >
+                  Réinitialiser les filtres
+                </button>
+              )}
             </div>
             {filteredOps.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Aucun résultat pour ces filtres.</div>
@@ -395,21 +432,29 @@ export const ContainerReportsView: React.FC = () => {
       {!isLoading && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard icon={Package} label="Total Conteneurs" value={containers.length} accent="blue" />
-            <StatCard icon={Clock} label="Actuellement Ouverts" value={totalOuverts} accent="amber" />
-            <StatCard icon={CheckCircle2} label="Clôturés" value={totalFermes} accent="emerald" />
-            <StatCard icon={AlertTriangle} label="Sans Transporteur" value={nonAssignes} accent={nonAssignes > 0 ? 'rose' : 'emerald'} />
+            <StatCard icon={Package} label="Total Conteneurs" value={containers.length} accent="blue" onClick={() => goToOperationsWith({})} />
+            <StatCard icon={Clock} label="Actuellement Ouverts" value={totalOuverts} accent="amber" onClick={() => goToOperationsWith({ status: 'OUVERT' })} />
+            <StatCard icon={CheckCircle2} label="Clôturés" value={totalFermes} accent="emerald" onClick={() => goToOperationsWith({ status: 'FERME' })} />
+            <StatCard icon={AlertTriangle} label="Sans Transporteur" value={nonAssignes} accent={nonAssignes > 0 ? 'rose' : 'emerald'} onClick={() => goToOperationsWith({ status: 'OUVERT', carrier: 'UNASSIGNED' })} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+            <button
+              type="button"
+              onClick={() => goToOperationsWith({ port: 'Douala' })}
+              className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 text-left hover:border-blue-400 hover:shadow-sm transition-all cursor-pointer"
+            >
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5"><Ship className="w-3.5 h-3.5" /> Douala (PAD)</span>
               <span className="text-2xl font-bold text-slate-900 block mt-1">{parPort.Douala}</span>
-            </div>
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+            </button>
+            <button
+              type="button"
+              onClick={() => goToOperationsWith({ port: 'Kribi' })}
+              className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 text-left hover:border-blue-400 hover:shadow-sm transition-all cursor-pointer"
+            >
               <span className="text-xs font-semibold text-slate-500 flex items-center gap-1.5"><Ship className="w-3.5 h-3.5" /> Kribi (PAK)</span>
               <span className="text-2xl font-bold text-slate-900 block mt-1">{parPort.Kribi}</span>
-            </div>
+            </button>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -456,15 +501,31 @@ const ACCENT_CLASSES: Record<string, string> = {
   rose: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
-const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; sub?: string; accent?: keyof typeof ACCENT_CLASSES }> = ({
-  icon: Icon, label, value, sub, accent = 'slate',
-}) => (
-  <div className={`p-3.5 rounded-xl border ${ACCENT_CLASSES[accent]}`}>
-    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-70">
-      <Icon className="w-3.5 h-3.5" />
-      {label}
-    </div>
-    <div className="text-xl font-bold mt-1">{value}</div>
-    {sub && <div className="text-[10px] opacity-70 mt-0.5">{sub}</div>}
-  </div>
-);
+const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; sub?: string; accent?: keyof typeof ACCENT_CLASSES; onClick?: () => void }> = ({
+  icon: Icon, label, value, sub, accent = 'slate', onClick,
+}) => {
+  const content = (
+    <>
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-70">
+        <Icon className="w-3.5 h-3.5" />
+        {label}
+      </div>
+      <div className="text-xl font-bold mt-1">{value}</div>
+      {sub && <div className="text-[10px] opacity-70 mt-0.5">{sub}</div>}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`p-3.5 rounded-xl border text-left w-full cursor-pointer hover:shadow-sm hover:brightness-95 transition-all ${ACCENT_CLASSES[accent]}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={`p-3.5 rounded-xl border ${ACCENT_CLASSES[accent]}`}>{content}</div>;
+};
