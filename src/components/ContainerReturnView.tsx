@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { Container, listPendingReturnContainers, submitContainerReturn } from '../lib/containers';
+import { usePolling } from '../lib/usePolling';
 import { uploadFile, ApiError } from '../lib/api';
 
 export const ContainerReturnView: React.FC = () => {
@@ -27,6 +28,12 @@ export const ContainerReturnView: React.FC = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Rafraîchissement silencieux : plusieurs chauffeurs partagent ce même
+  // pool, il peut donc changer à tout moment sans action du superviseur.
+  usePolling(() => {
+    listPendingReturnContainers().then(setContainers).catch(() => {});
+  }, 12000);
 
   useEffect(() => {
     fetchAll();

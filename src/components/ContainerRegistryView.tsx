@@ -19,6 +19,7 @@ import {
 } from '../lib/containers';
 import { listSubcontractorDrivers, SubcontractorDriver } from '../lib/subcontractors';
 import { listDrivers, DriverOption } from '../lib/users';
+import { usePolling } from '../lib/usePolling';
 import { ApiError } from '../lib/api';
 
 interface ContainerRegistryViewProps {
@@ -109,6 +110,14 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
   const [selectedSubcontractorId, setSelectedSubcontractorId] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+
+  // Rafraîchissement silencieux de la liste des conteneurs — un chauffeur
+  // peut livrer ou retourner un conteneur à tout moment, ce qui doit se
+  // refléter ici sans que le superviseur ait à recharger la page. Suspendu
+  // pendant qu'un modal est ouvert pour ne pas perturber une saisie en cours.
+  usePolling(() => {
+    listContainers().then(setContainers).catch(() => {});
+  }, 12000, !isCreateOpen && !assignTarget);
 
   const openAssign = (c: Container) => {
     setAssignTarget(c);

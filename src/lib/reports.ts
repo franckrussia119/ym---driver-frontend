@@ -97,6 +97,7 @@ interface BackendReport {
     kmParcourus: number;
     carburantL: number;
     fraisRoute: number;
+    source?: 'MANUEL' | 'POD' | 'RETOUR_CONTENEUR';
   }>;
   defects: BackendDefect[];
   signatures: BackendSignature[];
@@ -211,6 +212,7 @@ export function fromBackendRecord(record: BackendReport): WeeklyReport {
       kmParcourus: Number(t.kmParcourus),
       carburantL: Number(t.carburantL),
       fraisRoute: Number(t.fraisRoute),
+      source: t.source,
     })),
     tripStats: {
       totalEnlevesPort: record.totalEnlevesPort,

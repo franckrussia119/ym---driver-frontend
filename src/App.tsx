@@ -320,6 +320,30 @@ export default function App() {
     }
   };
 
+  // Ouvre l'écran de rapport hebdomadaire du chauffeur. Le brouillon local
+  // (localStorage) peut être obsolète — en particulier, il ne sait pas
+  // qu'une preuve de livraison ou un retour de conteneur a pu remplir
+  // automatiquement des trajets côté serveur entre-temps. On récupère donc
+  // toujours le brouillon réel du serveur s'il existe, pour ne jamais
+  // afficher un rapport qui ne reflète pas ce qui a réellement été fait.
+  const handleOpenWeeklyReport = async () => {
+    if (!currentUser) return;
+    try {
+      const all = await listReports();
+      const currentDraft = all.find((r) => !r.isSubmitted);
+      if (currentDraft) {
+        const full = await getReport(currentDraft.id);
+        setReport(full);
+      }
+      // Si aucun brouillon n'existe encore côté serveur, on garde le
+      // brouillon local (nouvelle semaine, rien à synchroniser).
+    } catch (err) {
+      // Silencieux : si la récupération échoue (ex: hors-ligne), on continue
+      // avec le brouillon local plutôt que de bloquer le chauffeur.
+    }
+    setSidebarTab('driver_vehicle');
+  };
+
   const handleAddFault = async (input: FaultFormInput) => {
     setIsSubmittingFault(true);
     try {
@@ -499,7 +523,7 @@ export default function App() {
               <DriverHomeMenu
                 currentUser={currentUser}
                 onOpenDeclareFault={() => setIsDeclareFaultModalOpen(true)}
-                onOpenWeeklyReport={() => setSidebarTab('driver_vehicle')}
+                onOpenWeeklyReport={handleOpenWeeklyReport}
                 driverReports={driverPersonalReports}
                 driverFaults={driverPersonalFaults}
                 onViewReport={handleViewHistoricalReport}

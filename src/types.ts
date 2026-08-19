@@ -43,6 +43,7 @@ export interface TripLogEntry {
   kmParcourus: number;
   carburantL: number;
   fraisRoute: number;
+  source?: 'MANUEL' | 'POD' | 'RETOUR_CONTENEUR';
 }
 
 export interface TripStats {

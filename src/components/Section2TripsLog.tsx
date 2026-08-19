@@ -1,6 +1,6 @@
 import React from 'react';
 import { TripLogEntry, TripStats, ContainerType, formatFCFA } from '../types';
-import { Plus, Trash2, Route, Fuel, DollarSign, Box } from 'lucide-react';
+import { Plus, Trash2, Route, Fuel, DollarSign, Box, Lock } from 'lucide-react';
 
 interface Section2TripsLogProps {
   trips?: TripLogEntry[];
@@ -107,40 +107,48 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 text-xs">
-            {trips.map((trip, idx) => (
-              <tr key={trip.id} className="hover:bg-slate-50 transition-colors">
+            {trips.map((trip, idx) => {
+              const locked = !!trip.source && trip.source !== 'MANUEL';
+              const lockedLabel = trip.source === 'POD' ? 'Preuve de Livraison' : trip.source === 'RETOUR_CONTENEUR' ? 'Retour Conteneur Vide' : '';
+              return (
+              <tr key={trip.id} className={`transition-colors ${locked ? 'bg-slate-50/80' : 'hover:bg-slate-50'}`}>
                 <td className="py-2 px-3 text-center font-bold text-slate-500">{idx + 1}</td>
                 <td className="py-2 px-2">
                   <input
                     type="date"
                     value={trip.date}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'date', e.target.value)}
-                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </td>
                 <td className="py-2 px-2">
                   <input
                     type="text"
                     value={trip.client}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'client', e.target.value)}
                     placeholder="Nom du client"
-                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
+                  {locked && <span className="text-[9px] font-bold text-blue-600 flex items-center gap-0.5 mt-0.5"><Lock className="w-2.5 h-2.5" />{lockedLabel}</span>}
                 </td>
                 <td className="py-2 px-2">
                   <input
                     type="text"
                     value={trip.noConteneurBL}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'noConteneurBL', e.target.value)}
                     placeholder="Conteneur / BL"
-                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </td>
                 <td className="py-2 px-2">
                   <select
                     value={trip.typeConteneur}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'typeConteneur', e.target.value as ContainerType)}
-                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   >
                     <option value="20">20'</option>
                     <option value="40">40'</option>
@@ -152,18 +160,20 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                   <input
                     type="text"
                     value={trip.depart}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'depart', e.target.value)}
                     placeholder="Ville / Dépôt"
-                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </td>
                 <td className="py-2 px-2">
                   <input
                     type="text"
                     value={trip.destination}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'destination', e.target.value)}
                     placeholder="Destination"
-                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </td>
                 <td className="py-2 px-2">
@@ -171,9 +181,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                     type="number"
                     min="0"
                     value={trip.kmParcourus || ''}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'kmParcourus', parseFloat(e.target.value) || 0)}
                     placeholder="0"
-                    className="w-full px-2 py-1 text-xs text-right font-medium bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs text-right font-medium bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </td>
                 <td className="py-2 px-2">
@@ -181,9 +192,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                     type="number"
                     min="0"
                     value={trip.carburantL || ''}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'carburantL', parseFloat(e.target.value) || 0)}
                     placeholder="0"
-                    className="w-full px-2 py-1 text-xs text-right font-medium bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs text-right font-medium bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </td>
                 <td className="py-2 px-2">
@@ -191,24 +203,32 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                     type="number"
                     min="0"
                     value={trip.fraisRoute || ''}
+                    disabled={locked}
                     onChange={(e) => handleTripChange(trip.id, 'fraisRoute', parseFloat(e.target.value) || 0)}
                     placeholder="0"
-                    className="w-full px-2 py-1 text-xs text-right font-medium bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-xs text-right font-medium bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   />
                 </td>
                 <td className="py-2 px-2 text-center">
-                  <button
-                    type="button"
-                    onClick={() => removeTrip(trip.id)}
-                    disabled={trips.length <= 1}
-                    className="p-1 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                    title="Supprimer la ligne"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {locked ? (
+                    <span className="p-1 text-blue-400 inline-flex" title={`Rempli automatiquement — ${lockedLabel}`}>
+                      <Lock className="w-4 h-4" />
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => removeTrip(trip.id)}
+                      disabled={trips.length <= 1}
+                      className="p-1 text-slate-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                      title="Supprimer la ligne"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
           {/* TOTAL Row */}
           <tfoot>
@@ -227,10 +247,13 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
 
       {/* Trips Native Mobile Cards - MOBILE VIEW ONLY (hidden on md and above) */}
       <div className="block md:hidden p-3 space-y-3 bg-slate-100/70">
-        {trips.map((trip, idx) => (
+        {trips.map((trip, idx) => {
+          const locked = !!trip.source && trip.source !== 'MANUEL';
+          const lockedLabel = trip.source === 'POD' ? 'Preuve de Livraison' : trip.source === 'RETOUR_CONTENEUR' ? 'Retour Conteneur Vide' : '';
+          return (
           <div
             key={trip.id}
-            className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs space-y-2.5 relative"
+            className={`bg-white rounded-xl border p-3 shadow-xs space-y-2.5 relative ${locked ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200'}`}
           >
             {/* Mobile Card Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -241,20 +264,32 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                 <input
                   type="date"
                   value={trip.date}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'date', e.target.value)}
-                  className="px-2 py-1 text-[11px] font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white"
+                  className="px-2 py-1 text-[11px] font-semibold bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white disabled:text-slate-500"
                 />
+                {locked && (
+                  <span className="text-[9px] font-bold text-blue-600 flex items-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5" />{lockedLabel}
+                  </span>
+                )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => removeTrip(trip.id)}
-                disabled={trips.length <= 1}
-                className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 cursor-pointer rounded-lg bg-slate-50"
-                title="Supprimer la mission"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              {locked ? (
+                <span className="p-1.5 text-blue-400" title={`Rempli automatiquement — ${lockedLabel}`}>
+                  <Lock className="w-3.5 h-3.5" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => removeTrip(trip.id)}
+                  disabled={trips.length <= 1}
+                  className="p-1.5 text-slate-400 hover:text-red-600 disabled:opacity-30 cursor-pointer rounded-lg bg-slate-50"
+                  title="Supprimer la mission"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Mobile Card Form Inputs */}
@@ -266,9 +301,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                 <input
                   type="text"
                   value={trip.client}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'client', e.target.value)}
                   placeholder="Nom du client"
-                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 font-medium"
+                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 font-medium disabled:text-slate-500"
                 />
               </div>
 
@@ -279,9 +315,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                 <input
                   type="text"
                   value={trip.noConteneurBL}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'noConteneurBL', e.target.value)}
                   placeholder="N° Conteneur"
-                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 font-mono"
+                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-blue-500 font-mono disabled:text-slate-500"
                 />
               </div>
             </div>
@@ -293,8 +330,9 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                 </label>
                 <select
                   value={trip.typeConteneur}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'typeConteneur', e.target.value as ContainerType)}
-                  className="w-full px-1.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white font-medium"
+                  className="w-full px-1.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white font-medium disabled:text-slate-500"
                 >
                   <option value="20">20'</option>
                   <option value="40">40'</option>
@@ -310,9 +348,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                 <input
                   type="text"
                   value={trip.depart}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'depart', e.target.value)}
                   placeholder="Départ"
-                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white font-medium"
+                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white font-medium disabled:text-slate-500"
                 />
               </div>
 
@@ -323,9 +362,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                 <input
                   type="text"
                   value={trip.destination}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'destination', e.target.value)}
                   placeholder="Arrivée"
-                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white font-medium"
+                  className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:bg-white font-medium disabled:text-slate-500"
                 />
               </div>
             </div>
@@ -338,9 +378,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                   type="number"
                   min="0"
                   value={trip.kmParcourus || ''}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'kmParcourus', parseFloat(e.target.value) || 0)}
                   placeholder="0"
-                  className="w-full bg-transparent text-right font-bold text-xs text-blue-900 focus:outline-none"
+                  className="w-full bg-transparent text-right font-bold text-xs text-blue-900 focus:outline-none disabled:text-slate-400"
                 />
               </div>
 
@@ -350,9 +391,10 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                   type="number"
                   min="0"
                   value={trip.carburantL || ''}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'carburantL', parseFloat(e.target.value) || 0)}
                   placeholder="0"
-                  className="w-full bg-transparent text-right font-bold text-xs text-amber-900 focus:outline-none"
+                  className="w-full bg-transparent text-right font-bold text-xs text-amber-900 focus:outline-none disabled:text-slate-400"
                 />
               </div>
 
@@ -362,14 +404,16 @@ export const Section2TripsLog: React.FC<Section2TripsLogProps> = ({
                   type="number"
                   min="0"
                   value={trip.fraisRoute || ''}
+                  disabled={locked}
                   onChange={(e) => handleTripChange(trip.id, 'fraisRoute', parseFloat(e.target.value) || 0)}
                   placeholder="0"
-                  className="w-full bg-transparent text-right font-bold text-xs text-emerald-800 focus:outline-none"
+                  className="w-full bg-transparent text-right font-bold text-xs text-emerald-800 focus:outline-none disabled:text-slate-400"
                 />
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {/* Mobile Total Banner */}
         <div className="bg-slate-900 text-white p-3 rounded-xl shadow-md border border-slate-800 space-y-1 text-xs">

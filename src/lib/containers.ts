@@ -103,6 +103,13 @@ export async function listContainers(): Promise<Container[]> {
   return api.get<Container[]>('/api/containers');
 }
 
+// Conteneurs assignés au chauffeur, encore ouverts, et PAS ENCORE livrés —
+// alimente le formulaire de création de POD. Un conteneur déjà livré ne
+// doit plus jamais apparaître ici.
+export async function listPendingDeliveryContainers(): Promise<Container[]> {
+  return api.get<Container[]>('/api/containers/pending-delivery');
+}
+
 // Pool ouvert : conteneurs livrés (preuve de livraison faite) mais pas
 // encore retournés — visible et accessible à TOUS les chauffeurs, pas
 // seulement celui qui a livré.
@@ -130,6 +137,19 @@ export async function createContainer(input: CreateContainerInput): Promise<Cont
 
 export async function setContainerDeadline(id: string, dateLimiteRetour: string): Promise<Container> {
   return api.patch<Container>(`/api/containers/${id}/deadline`, { dateLimiteRetour });
+}
+
+export interface ContainerReturnHistoryItem extends ContainerReturn {
+  containerNumeroReference: string;
+  containerNumber: string;
+  blNumber: string;
+  port: ContainerPort;
+  terminal: string;
+  size: ContainerSize;
+}
+
+export async function listReturnsHistory(): Promise<ContainerReturnHistoryItem[]> {
+  return api.get<ContainerReturnHistoryItem[]>('/api/containers/returns-history');
 }
 
 export async function assignCarrier(
