@@ -57,7 +57,6 @@ export interface PODRecord {
 
 interface ProofOfDeliveryViewProps {
   currentUser: UserProfile | null;
-  driversList?: UserProfile[];
 }
 
 // Aucune preuve de livraison fictive : la liste démarre vide. Chaque

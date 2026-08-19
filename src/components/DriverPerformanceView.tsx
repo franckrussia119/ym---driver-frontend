@@ -16,17 +16,13 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
-import { DriverPerformanceScore, UserProfile } from '../types';
+import { DriverPerformanceScore } from '../types';
 import { listDriverScores, recomputeDriverScores } from '../lib/fuel';
 import { ApiError } from '../lib/api';
 
-interface DriverPerformanceViewProps {
-  driversList: UserProfile[];
-}
+interface DriverPerformanceViewProps {}
 
-export const DriverPerformanceView: React.FC<DriverPerformanceViewProps> = ({
-  driversList,
-}) => {
+export const DriverPerformanceView: React.FC<DriverPerformanceViewProps> = () => {
   const [scores, setScores] = useState<DriverPerformanceScore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);

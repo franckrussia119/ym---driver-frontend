@@ -16,7 +16,6 @@ import {
 import {
   createDefaultReport,
   ensureReportDefaults,
-  DEMO_USERS,
   DEMO_FAULTS,
   DEMO_INVOICES,
   DEMO_FLEET,
@@ -82,7 +81,7 @@ import { CustomerFeedbackView } from './components/CustomerFeedbackView';
 import { CheckCircle2, AlertTriangle, Wrench, ShieldCheck, Truck, Users, Lock, FileText } from 'lucide-react';
 
 const STORAGE_KEY_CURRENT = 'ym_transit_current_report_v3';
-const STORAGE_KEY_USERS_LIST = 'ym_transit_users_list_v3';
+
 
 export default function App() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('routes_overview');
@@ -90,15 +89,6 @@ export default function App() {
   const [isSmartphoneView, setIsSmartphoneView] = useState<boolean>(false);
 
   // POD Modal State
-
-  // Users State
-  const [users, setUsers] = useState<UserProfile[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_USERS_LIST);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { }
-    }
-    return DEMO_USERS;
-  });
 
   // Auth User State — la session réelle est restaurée via le jeton JWT
   // (voir useEffect ci-dessous), plus jamais depuis un objet utilisateur
@@ -191,10 +181,6 @@ export default function App() {
   const [notification, setNotification] = useState<string | null>(null);
 
   // Persistence Effects
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_USERS_LIST, JSON.stringify(users));
-  }, [users]);
-
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_CURRENT, JSON.stringify(report));
   }, [report]);
@@ -715,7 +701,7 @@ export default function App() {
 
             {/* 6. REGISTRE FLOTTE & DOCUMENTS */}
             {sidebarTab === 'fleet_registry' && (
-              <FleetRegistryView driversList={users} />
+              <FleetRegistryView />
             )}
 
             {/* 7. MAINTENANCE PRÉVENTIVE */}
@@ -739,7 +725,7 @@ export default function App() {
 
             {/* 10. SCORE & PERFORMANCE CHAUFFEURS */}
             {sidebarTab === 'driver_performance' && (
-              <DriverPerformanceView driversList={users} />
+              <DriverPerformanceView />
             )}
 
             {/* 10b. ANALYSE DÉTAILLÉE PAR CHAUFFEUR (nouveau) */}
@@ -749,7 +735,6 @@ export default function App() {
             {sidebarTab === 'proof_of_delivery' && (
               <ProofOfDeliveryView
                 currentUser={currentUser}
-                driversList={users}
               />
             )}
 
@@ -782,7 +767,6 @@ export default function App() {
             {/* MODULE GESTION DES CONTENEURS */}
             {sidebarTab === 'container_registry' && (
               <ContainerRegistryView
-                driversList={users}
                 onOpenContainer={(id) => {
                   setSelectedContainerId(id);
                   setSidebarTab('container_detail');

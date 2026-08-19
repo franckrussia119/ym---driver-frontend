@@ -21,18 +21,16 @@ import {
   ChevronUp,
   Loader2,
 } from 'lucide-react';
-import { FleetVehicle, AdminDocument, VehicleStatus, UserProfile } from '../types';
+import { FleetVehicle, AdminDocument, VehicleStatus } from '../types';
 import { listVehicles, createVehicle, updateVehicle, addVehicleDocument } from '../lib/vehicles';
+import { listDrivers, DriverOption } from '../lib/users';
 import { ApiError, uploadFile } from '../lib/api';
 
-interface FleetRegistryViewProps {
-  driversList: UserProfile[];
-}
+interface FleetRegistryViewProps {}
 
-export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
-  driversList,
-}) => {
+export const FleetRegistryView: React.FC<FleetRegistryViewProps> = () => {
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [driversList, setDriversList] = useState<DriverOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -53,6 +51,9 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
 
   useEffect(() => {
     fetchVehicles();
+    listDrivers().then(setDriversList).catch(() => {
+      /* silencieux : le menu déroulant chauffeur reste vide si le chargement échoue */
+    });
   }, [fetchVehicles]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -694,7 +695,7 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = ({
                     <option value="">-- Saisie libre ou non assigné --</option>
                     {driversList.map((d) => (
                       <option key={d.id} value={d.name}>
-                        {d.name} ({d.role})
+                        {d.name} {d.camionAssigne ? `(${d.camionAssigne})` : ''}
                       </option>
                     ))}
                   </select>

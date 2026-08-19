@@ -11,7 +11,6 @@ import {
   X,
   AlertTriangle,
 } from 'lucide-react';
-import { UserProfile } from '../types';
 import {
   Container,
   listContainers,
@@ -19,10 +18,10 @@ import {
   assignCarrier,
 } from '../lib/containers';
 import { listSubcontractorDrivers, SubcontractorDriver } from '../lib/subcontractors';
+import { listDrivers, DriverOption } from '../lib/users';
 import { ApiError } from '../lib/api';
 
 interface ContainerRegistryViewProps {
-  driversList: UserProfile[];
   onOpenContainer: (id: string) => void;
 }
 
@@ -31,8 +30,9 @@ const STATUS_BADGE: Record<string, string> = {
   FERME: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
-export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ driversList, onOpenContainer }) => {
+export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ onOpenContainer }) => {
   const [containers, setContainers] = useState<Container[]>([]);
+  const [driversList, setDriversList] = useState<DriverOption[]>([]);
   const [subcontractors, setSubcontractors] = useState<SubcontractorDriver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -43,9 +43,10 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ dr
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [c, s] = await Promise.all([listContainers(), listSubcontractorDrivers()]);
+      const [c, s, d] = await Promise.all([listContainers(), listSubcontractorDrivers(), listDrivers()]);
       setContainers(c);
       setSubcontractors(s);
+      setDriversList(d);
     } catch (err) {
       setLoadError(err instanceof ApiError ? err.message : 'Impossible de charger les conteneurs.');
     } finally {

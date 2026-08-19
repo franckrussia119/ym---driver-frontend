@@ -16,6 +16,19 @@ export async function listUsers(): Promise<BackendUser[]> {
   return api.get<BackendUser[]>('/api/users');
 }
 
+// Version allégée, accessible à davantage de rôles (pas seulement
+// SUPER_ADMIN) — utilisée partout où il faut choisir un chauffeur dans un
+// menu déroulant (assignation de conteneur, de camion...).
+export interface DriverOption {
+  id: string;
+  name: string;
+  camionAssigne: string | null;
+}
+
+export async function listDrivers(): Promise<DriverOption[]> {
+  return api.get<DriverOption[]>('/api/users/drivers');
+}
+
 export interface CreateUserInput {
   name: string;
   email: string;
