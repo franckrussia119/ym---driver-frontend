@@ -19,6 +19,7 @@ import {
 import { DriverPerformanceScore } from '../types';
 import { listDriverScores, recomputeDriverScores } from '../lib/fuel';
 import { ApiError } from '../lib/api';
+import { usePolling } from '../lib/usePolling';
 
 interface DriverPerformanceViewProps {}
 
@@ -45,6 +46,10 @@ export const DriverPerformanceView: React.FC<DriverPerformanceViewProps> = () =>
   useEffect(() => {
     fetchScores();
   }, [fetchScores]);
+
+  usePolling(() => {
+    listDriverScores().then(setScores).catch(() => {});
+  }, 15000);
 
   const handleRecompute = async () => {
     setRecomputeError(null);

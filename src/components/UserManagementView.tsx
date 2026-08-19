@@ -16,6 +16,7 @@ import {
 import { UserRole } from '../types';
 import { listUsers, createUser, updateUser, BackendUser } from '../lib/users';
 import { ApiError } from '../lib/api';
+import { usePolling } from '../lib/usePolling';
 
 export const UserManagementView: React.FC = () => {
   const [users, setUsers] = useState<BackendUser[]>([]);
@@ -51,6 +52,10 @@ export const UserManagementView: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  usePolling(() => {
+    listUsers().then(setUsers).catch(() => {});
+  }, 15000);
 
   const handleOpenCreate = () => {
     setEditingUser(null);

@@ -21,6 +21,7 @@ import {
 import { formatFCFA } from '../types';
 import { listDrivers, getDriverHistory, DriverListItem, DriverHistoryResponse } from '../lib/driverHistory';
 import { ApiError } from '../lib/api';
+import { usePolling } from '../lib/usePolling';
 import { displayRef } from '../lib/displayRef';
 
 type PeriodPreset = '7J' | '30J' | 'MOIS' | 'PERSONNALISE' | 'TOUT';
@@ -112,6 +113,10 @@ export const DriverAnalysisView: React.FC = () => {
     if (selectedDriverId) loadDetail(selectedDriverId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset, customFrom, customTo]);
+
+  usePolling(() => {
+    if (selectedDriverId) loadDetail(selectedDriverId);
+  }, 15000, !!selectedDriverId);
 
   const filteredDrivers = drivers.filter(
     (d) =>

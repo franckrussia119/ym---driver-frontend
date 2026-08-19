@@ -24,6 +24,8 @@ import {
 import { FleetVehicle, AdminDocument, VehicleStatus } from '../types';
 import { listVehicles, createVehicle, updateVehicle, addVehicleDocument } from '../lib/vehicles';
 import { listDrivers, DriverOption } from '../lib/users';
+import { SearchableSelect } from './SearchableSelect';
+import { usePolling } from '../lib/usePolling';
 import { ApiError, uploadFile } from '../lib/api';
 
 interface FleetRegistryViewProps {}
@@ -55,6 +57,11 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = () => {
       /* silencieux : le menu déroulant chauffeur reste vide si le chargement échoue */
     });
   }, [fetchVehicles]);
+
+  usePolling(() => {
+    listVehicles().then(setVehicles).catch(() => {});
+    listDrivers().then(setDriversList).catch(() => {});
+  }, 15000);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -687,18 +694,17 @@ export const FleetRegistryView: React.FC<FleetRegistryViewProps> = () => {
 
                 <div>
                   <label className="font-semibold text-slate-700 block mb-1">Chauffeur Habituel</label>
-                  <select
+                  <SearchableSelect
+                    options={driversList.map((d) => ({
+                      value: d.name,
+                      label: d.name,
+                      sublabel: d.camionAssigne || undefined,
+                    }))}
                     value={chauffeurNom}
-                    onChange={(e) => setChauffeurNom(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg cursor-pointer"
-                  >
-                    <option value="">-- Saisie libre ou non assigné --</option>
-                    {driversList.map((d) => (
-                      <option key={d.id} value={d.name}>
-                        {d.name} {d.camionAssigne ? `(${d.camionAssigne})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setChauffeurNom}
+                    emptyOptionLabel="-- Saisie libre ou non assigné --"
+                    searchPlaceholder="Rechercher un chauffeur…"
+                  />
                 </div>
 
                 <div>

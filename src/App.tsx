@@ -48,6 +48,7 @@ import { SubcontractorDriversView } from './components/SubcontractorDriversView'
 import { ContainerReturnView } from './components/ContainerReturnView';
 import { ContainerReportsView } from './components/ContainerReportsView';
 import { getWorkspaceBg } from './lib/sidebarColors';
+import { usePolling } from './lib/usePolling';
 import { RoutesDispatchView } from './components/RoutesDispatchView';
 import { DriverMobileAppView } from './components/DriverMobileAppView';
 import { ModulesDashboard } from './components/ModulesDashboard';
@@ -177,6 +178,14 @@ export default function App() {
     refreshFaults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
+
+  // Rafraîchissement silencieux régulier — ces trois domaines (rapports,
+  // factures, pannes) sont partagés entre plusieurs écrans et plusieurs
+  // rôles ; personne ne devrait avoir besoin de recharger la page pour voir
+  // qu'un autre utilisateur a changé quelque chose.
+  usePolling(() => { refreshReportHistory(); }, 15000, !!currentUser);
+  usePolling(() => { refreshInvoices(); }, 15000, !!currentUser);
+  usePolling(() => { refreshFaults(); }, 15000, !!currentUser);
 
   const [notification, setNotification] = useState<string | null>(null);
 

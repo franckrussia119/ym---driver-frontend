@@ -31,6 +31,7 @@ import { displayRef } from '../lib/displayRef';
 import { CAMEROON_DESTINATIONS, getDistanceKm } from '../data/distances';
 import { Container, ContainerReturnHistoryItem, listPendingDeliveryContainers, listPendingReturnContainers, listReturnsHistory, submitContainerReturn } from '../lib/containers';
 import { usePolling } from '../lib/usePolling';
+import { SearchableSelect } from './SearchableSelect';
 
 export interface PODRecord {
   id: string;
@@ -646,25 +647,23 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                 <label className="font-bold text-slate-700 block mb-1">
                   Conteneur <span className="text-rose-500">*</span>
                 </label>
-                <select
+                <SearchableSelect
                   required
+                  options={assignedContainers.map((c) => ({
+                    value: c.id,
+                    label: `${c.containerNumber} · BL ${c.blNumber}`,
+                    sublabel: c.port === 'Douala' ? 'PAD' : 'PAK',
+                  }))}
                   value={selectedContainerId}
-                  onChange={(e) => {
-                    const id = e.target.value;
+                  onChange={(id) => {
                     setSelectedContainerId(id);
                     const c = assignedContainers.find((x) => x.id === id);
                     setBlNumber(c?.blNumber || '');
                     setContainerNumber(c?.containerNumber || '');
                   }}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-xs font-bold text-slate-900"
-                >
-                  <option value="">— Choisir le conteneur assigné —</option>
-                  {assignedContainers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.containerNumber} · BL {c.blNumber} · {c.port === 'Douala' ? 'PAD' : 'PAK'}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="— Choisir le conteneur assigné —"
+                  searchPlaceholder="Rechercher par N° conteneur ou BL…"
+                />
                 <p className="text-[10px] text-slate-400 mt-1">
                   Seuls les conteneurs réellement enregistrés et qui vous sont assignés apparaissent ici.
                 </p>
@@ -966,19 +965,18 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
             <form onSubmit={handleSubmitReturn} className="space-y-3.5 text-xs">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Conteneur à Retourner *</label>
-                <select
+                <SearchableSelect
                   required
+                  options={pendingReturnContainers.map((c) => ({
+                    value: c.id,
+                    label: `${c.containerNumber} · BL ${c.blNumber}`,
+                    sublabel: c.port === 'Douala' ? 'PAD' : 'PAK',
+                  }))}
                   value={returnContainerId}
-                  onChange={(e) => setReturnContainerId(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900"
-                >
-                  <option value="">— Choisir —</option>
-                  {pendingReturnContainers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.containerNumber} · BL {c.blNumber} · {c.port === 'Douala' ? 'PAD' : 'PAK'}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setReturnContainerId}
+                  placeholder="— Choisir —"
+                  searchPlaceholder="Rechercher par N° conteneur ou BL…"
+                />
               </div>
 
               <div>

@@ -21,6 +21,8 @@ import {
 import { FuelAnalysisEntry, FleetVehicle, TripLogEntry, formatFCFA } from '../types';
 import { listFuelEntries, createFuelEntry } from '../lib/fuel';
 import { listVehicles } from '../lib/vehicles';
+import { SearchableSelect } from './SearchableSelect';
+import { usePolling } from '../lib/usePolling';
 import { ApiError } from '../lib/api';
 
 // Major Cameroun routes database for local routing algorithm
@@ -58,6 +60,10 @@ export const RoutePlanningFuelView: React.FC = () => {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  usePolling(() => {
+    Promise.all([listFuelEntries(), listVehicles()]).then(([entries, vehs]) => { setFuelEntries(entries); setVehicles(vehs); }).catch(() => {});
+  }, 15000);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [anomalyOnly, setAnomalyOnly] = useState(false);
@@ -231,17 +237,15 @@ export const RoutePlanningFuelView: React.FC = () => {
 
           <div>
             <label className="text-slate-400 font-semibold block mb-1">Camion Assigné</label>
-            <select
+            <SearchableSelect
+              required
+              dark
+              options={vehicles.map((v) => ({ value: v.immatriculation, label: v.immatriculation, sublabel: `${v.consommationReferenceL100} L/100km` }))}
               value={selectedTruckImmat}
-              onChange={(e) => setSelectedTruckImmat(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white font-mono cursor-pointer"
-            >
-              {vehicles.map((v) => (
-                <option key={v.id} value={v.immatriculation}>
-                  {v.immatriculation} ({v.consommationReferenceL100} L/100km)
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedTruckImmat}
+              placeholder="— Choisir un camion —"
+              searchPlaceholder="Rechercher par immatriculation…"
+            />
           </div>
 
           <div>

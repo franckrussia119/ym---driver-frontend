@@ -28,6 +28,8 @@ import {
 } from '../types';
 import { listMaintenancePlans, listScheduledMaintenance, createScheduledMaintenance } from '../lib/maintenance';
 import { listVehicles } from '../lib/vehicles';
+import { SearchableSelect } from './SearchableSelect';
+import { usePolling } from '../lib/usePolling';
 import { ApiError } from '../lib/api';
 import { displayRef } from '../lib/displayRef';
 
@@ -72,6 +74,12 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  usePolling(() => {
+    Promise.all([listMaintenancePlans(), listScheduledMaintenance(), listVehicles()])
+      .then(([plans, scheduled, vehs]) => { setMaintenancePlans(plans); setScheduledMaintenances(scheduled); setVehicles(vehs); })
+      .catch(() => {});
+  }, 15000);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
@@ -571,17 +579,14 @@ export const PreventiveMaintenanceView: React.FC<PreventiveMaintenanceViewProps>
             <form onSubmit={handleScheduleSubmit} className="space-y-3 text-xs">
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">Camion Concerné *</label>
-                <select
+                <SearchableSelect
+                  required
+                  options={vehicles.map((v) => ({ value: v.immatriculation, label: v.immatriculation, sublabel: v.marqueModele }))}
                   value={selectedTruck}
-                  onChange={(e) => setSelectedTruck(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg font-bold"
-                >
-                  {vehicles.map((v) => (
-                    <option key={v.id} value={v.immatriculation}>
-                      {v.immatriculation} ({v.marqueModele})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSelectedTruck}
+                  placeholder="— Choisir un camion —"
+                  searchPlaceholder="Rechercher par immatriculation ou modèle…"
+                />
               </div>
 
               <div>

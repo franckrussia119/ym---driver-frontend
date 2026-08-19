@@ -27,6 +27,7 @@ import {
   DocumentType,
 } from '../lib/containers';
 import { uploadFile, ApiError } from '../lib/api';
+import { usePolling } from '../lib/usePolling';
 
 interface ContainerDetailViewProps {
   containerId: string;
@@ -71,6 +72,11 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
 
   // Step editing
   const [editingStep, setEditingStep] = useState<number | null>(null);
+
+  usePolling(() => {
+    getContainer(containerId).then(setContainer).catch(() => {});
+  }, 15000, editingStep === null);
+
   const [stepStatus, setStepStatus] = useState<string>('PENDING');
   const [stepDate, setStepDate] = useState('');
   const [stepNotes, setStepNotes] = useState('');

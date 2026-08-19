@@ -20,8 +20,10 @@ import {
 import { ContainerCaution, CautionStatus, formatFCFA, FleetVehicle } from '../types';
 import { listCautions, createCaution, updateCaution } from '../lib/cautions';
 import { listVehicles } from '../lib/vehicles';
+import { SearchableSelect } from './SearchableSelect';
 import { ApiError } from '../lib/api';
 import { displayRef } from '../lib/displayRef';
+import { usePolling } from '../lib/usePolling';
 
 export const ContainerCautionsView: React.FC = () => {
   const [cautions, setCautions] = useState<ContainerCaution[]>([]);
@@ -48,6 +50,10 @@ export const ContainerCautionsView: React.FC = () => {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  usePolling(() => {
+    Promise.all([listCautions(), listVehicles()]).then(([c, v]) => { setCautions(c); setVehicles(v); }).catch(() => {});
+  }, 15000);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -554,17 +560,14 @@ export const ContainerCautionsView: React.FC = () => {
 
                 <div>
                   <label className="font-semibold text-slate-700 block mb-1">Camion Assigné</label>
-                  <select
+                  <SearchableSelect
+                    required
+                    options={vehicles.map((v) => ({ value: v.immatriculation, label: v.immatriculation, sublabel: v.marqueModele }))}
                     value={truckImmat}
-                    onChange={(e) => setTruckImmat(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg font-mono"
-                  >
-                    {vehicles.map((v) => (
-                      <option key={v.id} value={v.immatriculation}>
-                        {v.immatriculation} ({v.marqueModele})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setTruckImmat}
+                    placeholder="— Choisir un camion —"
+                    searchPlaceholder="Rechercher par immatriculation ou modèle…"
+                  />
                 </div>
 
                 <div>

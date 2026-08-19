@@ -14,6 +14,7 @@ import {
 import { formatFCFA } from '../types';
 import { Container, ContainerReport, listContainers, getContainerReport } from '../lib/containers';
 import { PrintableContainerReportView } from './PrintableContainerReportView';
+import { usePolling } from '../lib/usePolling';
 import { listPOD } from '../lib/pod';
 import { PODRecord } from './ProofOfDeliveryView';
 import { ApiError } from '../lib/api';
@@ -56,6 +57,11 @@ export const ContainerReportsView: React.FC = () => {
   }, [viewMode, deliveries.length]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  usePolling(() => {
+    listContainers().then(setContainers).catch(() => {});
+  }, 15000, !selectedId);
+
 
   // Filtres — Rapport Opérations
   const [opsPortFilter, setOpsPortFilter] = useState<'ALL' | 'Douala' | 'Kribi'>('ALL');

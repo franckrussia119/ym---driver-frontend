@@ -24,6 +24,7 @@ import {
   SubcontractorDriver,
 } from '../lib/subcontractors';
 import { ApiError } from '../lib/api';
+import { usePolling } from '../lib/usePolling';
 
 export const SubcontractorDriversView: React.FC = () => {
   const [companies, setCompanies] = useState<SubcontractorCompany[]>([]);
@@ -49,6 +50,10 @@ export const SubcontractorDriversView: React.FC = () => {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  usePolling(() => {
+    Promise.all([listSubcontractorCompanies(), listSubcontractorDrivers()]).then(([c, d]) => { setCompanies(c); setDrivers(d); }).catch(() => {});
+  }, 15000);
 
   // --- Modal société ---
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);

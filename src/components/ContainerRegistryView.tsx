@@ -19,6 +19,7 @@ import {
 } from '../lib/containers';
 import { listSubcontractorDrivers, SubcontractorDriver } from '../lib/subcontractors';
 import { listDrivers, DriverOption } from '../lib/users';
+import { SearchableSelect } from './SearchableSelect';
 import { usePolling } from '../lib/usePolling';
 import { ApiError } from '../lib/api';
 
@@ -391,24 +392,26 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
               {carrierType === 'CHAUFFEUR_INTERNE' ? (
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Chauffeur *</label>
-                  <select required value={selectedDriverId} onChange={(e) => setSelectedDriverId(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                    <option value="">— Choisir —</option>
-                    {driversList.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} {d.camionAssigne ? `(${d.camionAssigne})` : ''}</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    required
+                    options={driversList.map((d) => ({ value: d.id, label: d.name, sublabel: d.camionAssigne || undefined }))}
+                    value={selectedDriverId}
+                    onChange={setSelectedDriverId}
+                    placeholder="— Choisir un chauffeur —"
+                    searchPlaceholder="Rechercher un chauffeur…"
+                  />
                 </div>
               ) : (
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Sous-traitant *</label>
-                  <select required value={selectedSubcontractorId} onChange={(e) => setSelectedSubcontractorId(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold">
-                    <option value="">— Choisir —</option>
-                    {subcontractors.map((s) => (
-                      <option key={s.id} value={s.id}>{s.nom} {s.companyNom ? `(${s.companyNom})` : ''}</option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    required
+                    options={subcontractors.map((s) => ({ value: s.id, label: s.nom, sublabel: s.companyNom || undefined }))}
+                    value={selectedSubcontractorId}
+                    onChange={setSelectedSubcontractorId}
+                    placeholder="— Choisir un sous-traitant —"
+                    searchPlaceholder="Rechercher un sous-traitant…"
+                  />
                   {subcontractors.length === 0 && (
                     <p className="text-[10px] text-amber-600 mt-1">Aucun sous-traitant enregistré. Ajoutez-en un dans "Chauffeurs Sous-traitants".</p>
                   )}
