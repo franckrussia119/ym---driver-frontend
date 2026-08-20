@@ -119,11 +119,15 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
                 </tr>
                 <tr>
                   <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">CHAUFFEUR — LIVRAISON</td>
-                  <td className="px-3 py-2 border border-slate-300" colSpan={3}>{report.carrier.label}</td>
+                  <td className="px-3 py-2 border border-slate-300" colSpan={3}>
+                    {report.carrier.label}{report.carrier.telephone ? ` — ${report.carrier.telephone}` : ''}
+                  </td>
                 </tr>
                 <tr>
                   <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">CHAUFFEUR — RETOUR</td>
-                  <td className="px-3 py-2 border border-slate-300" colSpan={3}>{report.retourPar || 'Pas encore retourné'}</td>
+                  <td className="px-3 py-2 border border-slate-300" colSpan={3}>
+                    {report.retourPar ? `${report.retourPar}${report.retourParTelephone ? ` — ${report.retourParTelephone}` : ''}` : 'Pas encore retourné'}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -232,6 +236,35 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
                       </td>
                     </tr>
                   )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* SECTION 5: INCIDENTS & TRANSFERTS */}
+          {report.incidents.length > 0 && (
+            <div className="mb-6">
+              <div className="bg-slate-900 text-white font-extrabold text-xs uppercase px-3 py-1.5 mb-2 rounded-t">
+                5. INCIDENTS & TRANSFERTS
+              </div>
+              <table className="w-full border-collapse border border-slate-300 text-xs">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <td className="font-bold px-3 py-2 border border-slate-300 text-slate-700">TYPE</td>
+                    <td className="font-bold px-3 py-2 border border-slate-300 text-slate-700">DATE</td>
+                    <td className="font-bold px-3 py-2 border border-slate-300 text-slate-700">DESCRIPTION</td>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.incidents.map((inc) => (
+                    <tr key={inc.id}>
+                      <td className="px-3 py-2 border border-slate-300 font-semibold">
+                        {inc.type === 'PANNE' ? 'Panne' : inc.type === 'TRANSFERT' ? 'Transfert' : 'Autre'}
+                      </td>
+                      <td className="px-3 py-2 border border-slate-300">{new Date(inc.createdAt).toLocaleDateString('fr-FR')}</td>
+                      <td className="px-3 py-2 border border-slate-300">{inc.description}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

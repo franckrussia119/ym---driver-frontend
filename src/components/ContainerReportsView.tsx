@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Wallet,
   Printer,
+  History,
 } from 'lucide-react';
 import { formatFCFA } from '../types';
 import { Container, ContainerReport, listContainers, getContainerReport } from '../lib/containers';
@@ -173,14 +174,39 @@ export const ContainerReportsView: React.FC = () => {
               </div>
             </div>
 
+            {report.incidents.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b border-slate-200">
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5"><History className="w-4 h-4 text-amber-600" /> Incidents & Transferts ({report.incidents.length})</h3>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {report.incidents.map((inc) => (
+                    <div key={inc.id} className="p-3.5 text-xs space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          inc.type === 'PANNE' ? 'bg-rose-50 text-rose-700 border-rose-200' : inc.type === 'TRANSFERT' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}>
+                          {inc.type === 'PANNE' ? 'Panne' : inc.type === 'TRANSFERT' ? 'Transfert' : 'Autre'}
+                        </span>
+                        <span className="text-slate-400 text-[11px]">{new Date(inc.createdAt).toLocaleString('fr-FR')}</span>
+                      </div>
+                      <p className="text-slate-700">{inc.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
                 <span className="text-xs font-semibold text-slate-500 block mb-1">Chauffeur — Livraison (aller)</span>
                 <span className="text-sm font-bold text-slate-900">{report.carrier.label}</span>
+                {report.carrier.telephone && <span className="text-xs text-slate-500 block mt-0.5">{report.carrier.telephone}</span>}
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
                 <span className="text-xs font-semibold text-slate-500 block mb-1">Chauffeur — Retour (à vide)</span>
                 <span className="text-sm font-bold text-slate-900">{report.retourPar || 'Pas encore retourné'}</span>
+                {report.retourParTelephone && <span className="text-xs text-slate-500 block mt-0.5">{report.retourParTelephone}</span>}
               </div>
             </div>
 

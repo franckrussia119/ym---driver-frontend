@@ -8,6 +8,7 @@ export interface BackendUser {
   role: UserRole;
   isActive: boolean;
   camionAssigne?: string;
+  telephone?: string;
   habiliteMatieresDangereuses?: boolean;
   createdAt?: string;
 }
@@ -23,6 +24,7 @@ export interface DriverOption {
   id: string;
   name: string;
   camionAssigne: string | null;
+  telephone: string | null;
 }
 
 export async function listDrivers(): Promise<DriverOption[]> {
@@ -35,6 +37,7 @@ export interface CreateUserInput {
   password: string;
   role: UserRole;
   camionAssigne?: string;
+  telephone?: string;
   habiliteMatieresDangereuses?: boolean;
 }
 
@@ -46,6 +49,7 @@ export interface UpdateUserInput {
   name?: string;
   role?: UserRole;
   camionAssigne?: string | null;
+  telephone?: string | null;
   habiliteMatieresDangereuses?: boolean;
   isActive?: boolean;
   password?: string;

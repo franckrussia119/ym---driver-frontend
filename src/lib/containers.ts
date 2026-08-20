@@ -43,6 +43,20 @@ export interface ContainerReturn {
   notes: string | null;
   filledById: string;
   filledByNom?: string | null;
+  filledByTelephone?: string | null;
+  createdAt: string;
+}
+
+export interface ContainerIncident {
+  id: string;
+  containerId: string;
+  type: 'PANNE' | 'TRANSFERT' | 'AUTRE';
+  description: string;
+  ancienChauffeurNom: string | null;
+  nouveauChauffeurNom: string | null;
+  ancienCamion: string | null;
+  nouveauCamion: string | null;
+  createdByNom: string | null;
   createdAt: string;
 }
 
@@ -62,6 +76,7 @@ export interface Container {
   subcontractorTelephone?: string | null;
   subcontractorEntreprise?: string | null;
   driverNom?: string | null;
+  driverTelephone?: string | null;
   createdByNom?: string | null;
   createdById: string;
   createdAt: string;
@@ -78,6 +93,7 @@ export interface ContainerWithDetails extends Container {
   documents: ContainerDocument[];
   pod: any[];
   return: ContainerReturn | null;
+  incidents: ContainerIncident[];
 }
 
 export interface ContainerReport {
@@ -89,8 +105,10 @@ export interface ContainerReport {
   dateLivraisonClient: string | null;
   joursDetentionClient: number | null;
   detention: { jours: number | null; statut: 'DANS_LES_DELAIS' | 'EN_RETARD' | 'NON_DEFINI' };
-  carrier: { type: CarrierType | null; label: string };
+  carrier: { type: CarrierType | null; label: string; telephone: string | null };
   retourPar: string | null;
+  retourParTelephone: string | null;
+  incidents: ContainerIncident[];
   montantDroitsTaxesFCFA: number;
   montantFraisRetourFCFA: number;
   montantFraisDepotFCFA: number;
@@ -141,6 +159,37 @@ export interface CreateContainerInput {
 
 export async function createContainer(input: CreateContainerInput): Promise<ContainerWithDetails> {
   return api.post<ContainerWithDetails>('/api/containers', input);
+}
+
+export interface UpdateContainerInput {
+  blNumber?: string;
+  port?: ContainerPort;
+  terminal?: string;
+  containerNumber?: string;
+  size?: ContainerSize;
+  notes?: string;
+}
+
+export async function updateContainer(id: string, input: UpdateContainerInput): Promise<ContainerWithDetails> {
+  return api.patch<ContainerWithDetails>(`/api/containers/${id}`, input);
+}
+
+export async function deleteContainer(id: string): Promise<void> {
+  await api.del(`/api/containers/${id}`);
+}
+
+export async function createIncident(
+  containerId: string,
+  input: {
+    type: 'PANNE' | 'TRANSFERT' | 'AUTRE';
+    description: string;
+    ancienChauffeurNom?: string;
+    nouveauChauffeurNom?: string;
+    ancienCamion?: string;
+    nouveauCamion?: string;
+  }
+): Promise<ContainerIncident> {
+  return api.post<ContainerIncident>(`/api/containers/${containerId}/incidents`, input);
 }
 
 export async function setContainerDeadline(id: string, dateLimiteRetour: string): Promise<Container> {

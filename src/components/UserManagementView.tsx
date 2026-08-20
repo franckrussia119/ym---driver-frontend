@@ -34,6 +34,7 @@ export const UserManagementView: React.FC = () => {
   const [role, setRole] = useState<UserRole>('CHAUFFEUR');
   const [password, setPassword] = useState('');
   const [camionAssigne, setCamionAssigne] = useState('');
+  const [telephone, setTelephone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -64,6 +65,7 @@ export const UserManagementView: React.FC = () => {
     setRole('CHAUFFEUR');
     setPassword('');
     setCamionAssigne('');
+    setTelephone('');
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -75,6 +77,7 @@ export const UserManagementView: React.FC = () => {
     setRole(u.role);
     setPassword(''); // Laissé vide = mot de passe inchangé
     setCamionAssigne(u.camionAssigne || '');
+    setTelephone(u.telephone || '');
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -95,6 +98,7 @@ export const UserManagementView: React.FC = () => {
           name,
           role,
           camionAssigne: role === 'CHAUFFEUR' ? camionAssigne : null,
+          telephone: telephone || null,
           ...(password ? { password } : {}),
         });
       } else {
@@ -104,6 +108,7 @@ export const UserManagementView: React.FC = () => {
           password,
           role,
           camionAssigne: role === 'CHAUFFEUR' ? camionAssigne : undefined,
+          telephone: telephone || undefined,
         });
       }
       setIsModalOpen(false);
@@ -196,6 +201,7 @@ export const UserManagementView: React.FC = () => {
                       <div>
                         <div className="text-xs font-bold text-slate-900">{u.name}</div>
                         <div className="text-[11px] text-slate-500 font-normal">{u.email}</div>
+                        {u.telephone && <div className="text-[11px] text-slate-400 font-normal">{u.telephone}</div>}
                       </div>
                     </div>
                   </td>
@@ -316,6 +322,17 @@ export const UserManagementView: React.FC = () => {
                 {editingUser && (
                   <p className="text-[10px] text-slate-400 mt-1">L'email ne peut pas être modifié.</p>
                 )}
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Téléphone</label>
+                <input
+                  type="tel"
+                  value={telephone}
+                  onChange={(e) => setTelephone(e.target.value)}
+                  placeholder="Ex: 677001122"
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                />
               </div>
 
               <div>

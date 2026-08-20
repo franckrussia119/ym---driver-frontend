@@ -65,7 +65,7 @@ import { FaultWorkflowView } from './components/FaultWorkflowView';
 import { LandingPortal } from './components/LandingPortal';
 import { UserManagementView } from './components/UserManagementView';
 import { DriverHomeMenu } from './components/DriverHomeMenu';
-import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+
 import { SmartphoneFrameWrapper } from './components/SmartphoneFrameWrapper';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { DriverHistoryView } from './components/DriverHistoryView';
@@ -88,6 +88,23 @@ const STORAGE_KEY_CURRENT = 'ym_transit_current_report_v3';
 export default function App() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('routes_overview');
   const [selectedContainerId, setSelectedContainerId] = useState<string | null>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
+
+  // Se souvient de l'onglet courant (et du conteneur ouvert, le cas échéant)
+  // pour qu'un simple rechargement de page (F5) ne renvoie jamais l'utilisateur
+  // à son écran d'accueil par défaut — seule une VRAIE nouvelle connexion le fait.
+  // IMPORTANT : on attend que la restauration de session soit terminée avant de
+  // commencer à écrire, sinon l'état initial ('routes_overview') écraserait
+  // l'onglet sauvegardé avant même que la restauration ait pu le lire.
+  useEffect(() => {
+    if (isRestoringSession) return;
+    sessionStorage.setItem('ym_transit_last_tab', sidebarTab);
+  }, [sidebarTab, isRestoringSession]);
+  useEffect(() => {
+    if (isRestoringSession) return;
+    if (selectedContainerId) sessionStorage.setItem('ym_transit_last_container_id', selectedContainerId);
+    else sessionStorage.removeItem('ym_transit_last_container_id');
+  }, [selectedContainerId, isRestoringSession]);
   const [isSmartphoneView, setIsSmartphoneView] = useState<boolean>(false);
 
   // POD Modal State
@@ -96,12 +113,11 @@ export default function App() {
   // (voir useEffect ci-dessous), plus jamais depuis un objet utilisateur
   // stocké en clair dans localStorage.
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [isRestoringSession, setIsRestoringSession] = useState(true);
 
   useEffect(() => {
     restoreSession().then((user) => {
       if (user) {
-        handleSelectUserFromPortal(user);
+        handleSelectUserFromPortal(user, true);
       }
       setIsRestoringSession(false);
     });
@@ -223,8 +239,26 @@ export default function App() {
   const hasDefects = (Object.values(report.defects || {}) as InspectionDefectItem[]).some((d) => d.constate);
 
   // Actions
-  const handleSelectUserFromPortal = (user: UserProfile) => {
+  const handleSelectUserFromPortal = (user: UserProfile, isRestore = false) => {
     setCurrentUser(user);
+
+    if (isRestore) {
+      // Rechargement de page : on restaure l'écran où l'utilisateur était,
+      // pas un écran d'accueil par défaut. Aucun toast — ce n'est pas une
+      // nouvelle connexion.
+      const savedTab = sessionStorage.getItem('ym_transit_last_tab') as SidebarTab | null;
+      const savedContainerId = sessionStorage.getItem('ym_transit_last_container_id');
+      if (savedTab) {
+        setSidebarTab(savedTab);
+        if (savedTab === 'container_detail' && savedContainerId) {
+          setSelectedContainerId(savedContainerId);
+        }
+        return;
+      }
+      // Pas d'onglet sauvegardé (première visite) : on retombe sur le
+      // comportement par défaut ci-dessous.
+    }
+
     if (user.role === 'CHAUFFEUR') {
       setSidebarTab('proof_of_delivery');
       showToast(`Espace Chauffeur connecté : ${user.name}`);
@@ -252,6 +286,8 @@ export default function App() {
     await apiLogout();
     setCurrentUser(null);
     setSidebarTab('routes_overview');
+    sessionStorage.removeItem('ym_transit_last_tab');
+    sessionStorage.removeItem('ym_transit_last_container_id');
     showToast('Déconnexion réussie.');
   };
 
@@ -430,15 +466,12 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-900">
         <LandingPortal onLoginSuccess={handleSelectUserFromPortal} />
-        <PWAInstallPrompt />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 flex flex-col lg:flex-row">
-      <PWAInstallPrompt />
-
       {/* Toast Notification */}
       {notification && (
         <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-4">
