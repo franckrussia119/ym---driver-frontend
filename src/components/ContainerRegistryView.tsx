@@ -11,6 +11,7 @@ import {
   X,
   AlertTriangle,
 } from 'lucide-react';
+import { UserProfile } from '../types';
 import {
   Container,
   listContainers,
@@ -25,6 +26,7 @@ import { ApiError } from '../lib/api';
 
 interface ContainerRegistryViewProps {
   onOpenContainer: (id: string) => void;
+  currentUser: UserProfile | null;
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -32,7 +34,7 @@ const STATUS_BADGE: Record<string, string> = {
   FERME: 'bg-slate-100 text-slate-500 border-slate-200',
 };
 
-export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ onOpenContainer }) => {
+export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ onOpenContainer, currentUser }) => {
   const [containers, setContainers] = useState<Container[]>([]);
   const [driversList, setDriversList] = useState<DriverOption[]>([]);
   const [subcontractors, setSubcontractors] = useState<SubcontractorDriver[]>([]);
@@ -40,6 +42,10 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OUVERT' | 'FERME'>('OUVERT');
+  const [dateFilter, setDateFilter] = useState<'ALL' | 'TODAY' | 'CUSTOM'>('ALL');
+  const [customFromDate, setCustomFromDate] = useState('');
+  const [customToDate, setCustomToDate] = useState('');
+  const [createdByMeOnly, setCreatedByMeOnly] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setIsLoading(true);
@@ -148,13 +154,25 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
     }
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const filtered = containers.filter((c) => {
     const matchesSearch =
       c.blNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.containerNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.numeroReference.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
+
+    const createdDateStr = c.createdAt.split('T')[0];
+    const matchesDate =
+      dateFilter === 'ALL' ? true :
+      dateFilter === 'TODAY' ? createdDateStr === todayStr :
+      // CUSTOM : plage inclusive, l'une ou l'autre borne peut être vide.
+      (!customFromDate || createdDateStr >= customFromDate) && (!customToDate || createdDateStr <= customToDate);
+
+    const matchesCreator = !createdByMeOnly || c.createdById === currentUser?.id;
+
+    return matchesSearch && matchesStatus && matchesDate && matchesCreator;
   });
 
   return (
@@ -203,6 +221,47 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold text-slate-400 uppercase mr-1">Date de création :</span>
+        {(['ALL', 'TODAY', 'CUSTOM'] as const).map((d) => (
+          <button
+            key={d}
+            onClick={() => setDateFilter(d)}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
+              dateFilter === d ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {d === 'ALL' ? 'Toutes' : d === 'TODAY' ? "Aujourd'hui" : 'Période personnalisée'}
+          </button>
+        ))}
+        {dateFilter === 'CUSTOM' && (
+          <div className="flex items-center gap-1.5">
+            <input
+              type="date"
+              value={customFromDate}
+              onChange={(e) => setCustomFromDate(e.target.value)}
+              className="px-2 py-1.5 text-[11px] bg-white border border-slate-200 rounded-lg"
+            />
+            <span className="text-slate-400 text-[11px]">→</span>
+            <input
+              type="date"
+              value={customToDate}
+              onChange={(e) => setCustomToDate(e.target.value)}
+              className="px-2 py-1.5 text-[11px] bg-white border border-slate-200 rounded-lg"
+            />
+          </div>
+        )}
+        <label className="flex items-center gap-1.5 ml-2 cursor-pointer select-none px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200">
+          <input
+            type="checkbox"
+            checked={createdByMeOnly}
+            onChange={(e) => setCreatedByMeOnly(e.target.checked)}
+            className="cursor-pointer"
+          />
+          <span className="text-[11px] font-bold text-slate-600">Créé par moi seulement</span>
+        </label>
+      </div>
+
       {isLoading && (
         <div className="p-10 flex items-center justify-center text-slate-400 gap-2 bg-white rounded-xl border border-slate-200">
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -239,6 +298,10 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
               <div className="flex items-center gap-2 mt-3 text-[10px] text-slate-400">
                 <Ship className="w-3 h-3" />
                 <span>{c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
+              </div>
+              <div className="text-[10px] text-slate-400 mt-1">
+                Créé le {new Date(c.createdAt).toLocaleDateString('fr-FR')} à {new Date(c.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                {c.createdByNom ? ` par ${c.createdByNom}` : ''}
               </div>
               {c.status === 'OUVERT' && c.dateLimiteRetour && (() => {
                 const daysLeft = Math.round((new Date(c.dateLimiteRetour).getTime() - Date.now()) / 86_400_000);

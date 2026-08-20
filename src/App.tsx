@@ -834,6 +834,7 @@ export default function App() {
             {/* MODULE GESTION DES CONTENEURS */}
             {sidebarTab === 'container_registry' && (
               <ContainerRegistryView
+                currentUser={currentUser}
                 onOpenContainer={(id) => {
                   setSelectedContainerId(id);
                   setSidebarTab('container_detail');
