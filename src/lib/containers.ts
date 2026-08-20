@@ -67,6 +67,9 @@ export interface Container {
   createdAt: string;
   closedAt: string | null;
   dateLimiteRetour: string | null;
+  fraisDepotFCFA: number;
+  fraisSupplementairesFCFA: number;
+  fraisSupplementairesNote: string | null;
   notes: string | null;
 }
 
@@ -83,11 +86,16 @@ export interface ContainerReport {
   dateOuverture: string;
   dateFermeture: string | null;
   totalDays: number;
+  dateLivraisonClient: string | null;
+  joursDetentionClient: number | null;
   detention: { jours: number | null; statut: 'DANS_LES_DELAIS' | 'EN_RETARD' | 'NON_DEFINI' };
   carrier: { type: CarrierType | null; label: string };
   retourPar: string | null;
   montantDroitsTaxesFCFA: number;
   montantFraisRetourFCFA: number;
+  montantFraisDepotFCFA: number;
+  montantFraisSupplementairesFCFA: number;
+  fraisSupplementairesNote: string | null;
   montantTotalFCFA: number;
   stepsCompleted: number;
   stepsTotal: number;
@@ -137,6 +145,13 @@ export async function createContainer(input: CreateContainerInput): Promise<Cont
 
 export async function setContainerDeadline(id: string, dateLimiteRetour: string): Promise<Container> {
   return api.patch<Container>(`/api/containers/${id}/deadline`, { dateLimiteRetour });
+}
+
+export async function setContainerFees(
+  id: string,
+  input: { fraisDepotFCFA?: number; fraisSupplementairesFCFA?: number; fraisSupplementairesNote?: string }
+): Promise<Container> {
+  return api.patch<Container>(`/api/containers/${id}/fees`, input);
 }
 
 export interface ContainerReturnHistoryItem extends ContainerReturn {

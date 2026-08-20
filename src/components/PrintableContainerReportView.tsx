@@ -134,11 +134,22 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
             <div className="bg-slate-900 text-white font-extrabold text-xs uppercase px-3 py-1.5 mb-2 rounded-t">
               2. RÉSUMÉ
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2 mb-2">
               <div className="border border-slate-300 rounded p-2.5 text-center">
-                <span className="text-[9px] font-bold text-slate-400 uppercase block">Jours</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Jours (Création → Clôture)</span>
                 <span className="text-lg font-black text-slate-900 block">{report.totalDays}</span>
               </div>
+              <div className="border border-slate-300 rounded p-2.5 text-center">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Jours (Livraison Client → Clôture)</span>
+                <span className="text-lg font-black text-slate-900 block">{report.joursDetentionClient ?? '—'}</span>
+                {report.dateLivraisonClient && <span className="text-[8px] text-slate-400 block">Livré le {report.dateLivraisonClient.split(' ')[0]}</span>}
+              </div>
+              <div className="border border-slate-300 rounded p-2.5 text-center">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Étapes</span>
+                <span className="text-lg font-black text-slate-900 block">{report.stepsCompleted}/{report.stepsTotal}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
               <div className="border border-slate-300 rounded p-2.5 text-center">
                 <span className="text-[9px] font-bold text-slate-400 uppercase block">Droits & Taxes</span>
                 <span className="text-sm font-black text-emerald-700 block mt-1">{formatFCFA(report.montantDroitsTaxesFCFA)}</span>
@@ -147,15 +158,22 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
                 <span className="text-[9px] font-bold text-slate-400 uppercase block">Frais de Retour</span>
                 <span className="text-sm font-black text-amber-700 block mt-1">{formatFCFA(report.montantFraisRetourFCFA)}</span>
               </div>
+              <div className="border border-slate-300 rounded p-2.5 text-center">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Frais de Dépôt</span>
+                <span className="text-sm font-black text-amber-700 block mt-1">{formatFCFA(report.montantFraisDepotFCFA)}</span>
+              </div>
+              <div className="border border-slate-300 rounded p-2.5 text-center">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Frais Suppl.</span>
+                <span className="text-sm font-black text-amber-700 block mt-1">{formatFCFA(report.montantFraisSupplementairesFCFA)}</span>
+              </div>
               <div className="border border-slate-300 rounded p-2.5 text-center bg-slate-50">
                 <span className="text-[9px] font-bold text-slate-400 uppercase block">Coût Total</span>
                 <span className="text-sm font-black text-slate-900 block mt-1">{formatFCFA(report.montantTotalFCFA)}</span>
               </div>
-              <div className="border border-slate-300 rounded p-2.5 text-center">
-                <span className="text-[9px] font-bold text-slate-400 uppercase block">Étapes</span>
-                <span className="text-lg font-black text-slate-900 block">{report.stepsCompleted}/{report.stepsTotal}</span>
-              </div>
             </div>
+            {report.fraisSupplementairesNote && (
+              <p className="text-[9px] text-slate-500 italic mt-1">Note frais supplémentaires : {report.fraisSupplementairesNote}</p>
+            )}
           </div>
 
           {/* SECTION 3: CHRONOLOGIE */}

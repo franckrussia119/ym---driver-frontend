@@ -15,6 +15,7 @@ import {
   Unlock,
   Ticket,
   Paperclip,
+  Wallet,
 } from 'lucide-react';
 import { formatFCFA } from '../types';
 import {
@@ -25,6 +26,7 @@ import {
   addContainerDocument,
   updateDocumentStatus,
   DocumentType,
+  setContainerFees,
 } from '../lib/containers';
 import { uploadFile, ApiError } from '../lib/api';
 import { usePolling } from '../lib/usePolling';
@@ -340,6 +342,9 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
         </div>
       </div>
 
+      {/* Frais Supplémentaires */}
+      <ContainerFeesSection container={container} onUpdated={fetchContainer} />
+
       {/* Document Vault */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
@@ -421,6 +426,108 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
           <h3 className="font-bold text-sm text-slate-900 mb-2">Retour du Conteneur Vide</h3>
           <p className="text-xs text-slate-600">Retourné le {container.return.dateRetourVide} au dépôt {container.return.depotRetour}.</p>
           {container.return.notes && <p className="text-xs text-slate-500 mt-1 italic">{container.return.notes}</p>}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Frais de dépôt et frais supplémentaires — distincts des droits/taxes
+// (renseignés sur l'étape 3 du pipeline) et des frais de retour (formulaire
+// de retour). Éditable directement ici pour que le coût total du conteneur
+// reflète vraiment tout ce qui a été dépensé.
+const ContainerFeesSection: React.FC<{ container: ContainerWithDetails; onUpdated: () => void }> = ({ container, onUpdated }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [fraisDepot, setFraisDepot] = useState(container.fraisDepotFCFA);
+  const [fraisSupp, setFraisSupp] = useState(container.fraisSupplementairesFCFA);
+  const [fraisSuppNote, setFraisSuppNote] = useState(container.fraisSupplementairesNote || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const openEdit = () => {
+    setFraisDepot(container.fraisDepotFCFA);
+    setFraisSupp(container.fraisSupplementairesFCFA);
+    setFraisSuppNote(container.fraisSupplementairesNote || '');
+    setError(null);
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      await setContainerFees(container.id, {
+        fraisDepotFCFA: fraisDepot,
+        fraisSupplementairesFCFA: fraisSupp,
+        fraisSupplementairesNote: fraisSuppNote || undefined,
+      });
+      setIsEditing(false);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Échec de l'enregistrement des frais.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+          <Wallet className="w-4 h-4 text-emerald-600" /> Frais de Dépôt & Frais Supplémentaires
+        </h3>
+        {!isEditing && (
+          <button onClick={openEdit} className="text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer">
+            Modifier
+          </button>
+        )}
+      </div>
+
+      {!isEditing ? (
+        <div className="p-4 grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <span className="text-slate-500 block">Frais de Dépôt</span>
+            <span className="font-bold text-slate-900">{formatFCFA(container.fraisDepotFCFA)}</span>
+          </div>
+          <div>
+            <span className="text-slate-500 block">Frais Supplémentaires</span>
+            <span className="font-bold text-slate-900">{formatFCFA(container.fraisSupplementairesFCFA)}</span>
+            {container.fraisSupplementairesNote && (
+              <span className="block text-[11px] text-slate-400 italic mt-0.5">{container.fraisSupplementairesNote}</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 space-y-3 text-xs">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="font-bold text-slate-600 block mb-1">Frais de Dépôt (FCFA)</label>
+              <input type="number" min={0} value={fraisDepot} onChange={(e) => setFraisDepot(Number(e.target.value))}
+                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold" />
+            </div>
+            <div>
+              <label className="font-bold text-slate-600 block mb-1">Frais Supplémentaires (FCFA)</label>
+              <input type="number" min={0} value={fraisSupp} onChange={(e) => setFraisSupp(Number(e.target.value))}
+                className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-bold" />
+            </div>
+          </div>
+          <div>
+            <label className="font-bold text-slate-600 block mb-1">Note (frais supplémentaires)</label>
+            <input type="text" value={fraisSuppNote} onChange={(e) => setFraisSuppNote(e.target.value)}
+              placeholder="Ex: Frais de manutention exceptionnels"
+              className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg" />
+          </div>
+          {error && <p className="text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5">{error}</p>}
+          <div className="flex gap-2">
+            <button onClick={() => setIsEditing(false)} className="px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-lg font-medium cursor-pointer">
+              Annuler
+            </button>
+            <button onClick={handleSave} disabled={isSaving}
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-lg cursor-pointer flex items-center gap-1.5">
+              {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
+              Enregistrer
+            </button>
+          </div>
         </div>
       )}
     </div>

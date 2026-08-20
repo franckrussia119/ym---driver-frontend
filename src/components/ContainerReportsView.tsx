@@ -138,10 +138,39 @@ export const ContainerReportsView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatCard icon={Clock} label="Jours" value={report.totalDays} sub={report.isOuvert ? 'Toujours ouvert' : 'Clôturé'} accent={report.isOuvert ? 'blue' : 'slate'} />
-              <StatCard icon={Wallet} label="Coût Total" value={formatFCFA(report.montantTotalFCFA)} sub={`Droits: ${formatFCFA(report.montantDroitsTaxesFCFA)} · Retour: ${formatFCFA(report.montantFraisRetourFCFA)}`} accent="emerald" />
+              <StatCard icon={Clock} label="Jours (Création → Clôture)" value={report.totalDays} sub={report.isOuvert ? 'Toujours ouvert' : 'Clôturé'} accent={report.isOuvert ? 'blue' : 'slate'} />
+              <StatCard icon={Clock} label="Jours (Livraison Client → Clôture)" value={report.joursDetentionClient ?? '—'} sub={report.dateLivraisonClient ? `Livré le ${report.dateLivraisonClient.split(' ')[0]}` : 'Pas encore livré'} accent="amber" />
               <StatCard icon={CheckCircle2} label="Étapes Terminées" value={`${report.stepsCompleted}/${report.stepsTotal}`} accent={report.stepsBlocked > 0 ? 'rose' : 'emerald'} />
               <StatCard icon={Package} label="Documents Validés" value={`${report.documentsValidated}/${report.documentsCount}`} accent="blue" />
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="p-4 bg-slate-50 border-b border-slate-200">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5"><Wallet className="w-4 h-4 text-emerald-600" /> Détail des Coûts</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Droits & Taxes</span>
+                  <span className="text-sm font-bold text-slate-900">{formatFCFA(report.montantDroitsTaxesFCFA)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Frais de Retour</span>
+                  <span className="text-sm font-bold text-slate-900">{formatFCFA(report.montantFraisRetourFCFA)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Frais de Dépôt</span>
+                  <span className="text-sm font-bold text-slate-900">{formatFCFA(report.montantFraisDepotFCFA)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Frais Supplémentaires</span>
+                  <span className="text-sm font-bold text-slate-900">{formatFCFA(report.montantFraisSupplementairesFCFA)}</span>
+                  {report.fraisSupplementairesNote && <span className="block text-[10px] text-slate-400 italic mt-0.5">{report.fraisSupplementairesNote}</span>}
+                </div>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 -m-1">
+                  <span className="text-[10px] font-bold text-emerald-600 uppercase block">Coût Total</span>
+                  <span className="text-base font-bold text-emerald-800">{formatFCFA(report.montantTotalFCFA)}</span>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
