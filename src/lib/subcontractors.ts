@@ -69,3 +69,35 @@ export async function createSubcontractorDriver(input: CreateSubcontractorDriver
 export async function updateSubcontractorDriver(id: string, input: Partial<CreateSubcontractorDriverInput>): Promise<SubcontractorDriver> {
   return api.patch<SubcontractorDriver>(`/api/subcontractors/drivers/${id}`, input);
 }
+
+export interface SubcontractorStats {
+  totalContainers: number;
+  ouverts: number;
+  fermes: number;
+  totalLivraisons: number;
+  totalMontantRecuFCFA: number;
+}
+
+export interface CompanyAnalysis {
+  company: SubcontractorCompany;
+  drivers: SubcontractorDriver[];
+  containers: Array<{ id: string; numeroReference: string; containerNumber: string; blNumber: string; port: string; terminal: string; size: string; status: string; subcontractorNom: string }>;
+  pod: Array<{ id: string; numeroReference: string; recipientName: string; dateTime: string; status: string; montantRecuFCFA: number; subcontractorDriverNom: string }>;
+  stats: SubcontractorStats;
+}
+
+export async function getCompanyAnalysis(companyId: string): Promise<CompanyAnalysis> {
+  return api.get<CompanyAnalysis>(`/api/subcontractors/companies/${companyId}/analysis`);
+}
+
+export interface DriverAnalysis {
+  driver: SubcontractorDriver & { companyNom: string | null };
+  containers: Array<{ id: string; numeroReference: string; containerNumber: string; blNumber: string; port: string; terminal: string; size: string; status: string }>;
+  pod: Array<{ id: string; numeroReference: string; recipientName: string; dateTime: string; status: string; montantRecuFCFA: number }>;
+  returns: Array<{ id: string; containerNumber: string; blNumber: string; dateRetourVide: string; depotRetour: string; fraisRetourFCFA: number }>;
+  stats: SubcontractorStats;
+}
+
+export async function getSubcontractorDriverAnalysis(driverId: string): Promise<DriverAnalysis> {
+  return api.get<DriverAnalysis>(`/api/subcontractors/drivers/${driverId}/analysis`);
+}

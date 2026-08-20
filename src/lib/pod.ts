@@ -24,6 +24,8 @@ export interface CreatePODInput {
   departurePortAutre?: string;
   montantRecuFCFA: number;
   distanceKm: number;
+  subcontractorDriverId?: string;
+  subcontractorDriverName?: string;
 }
 
 export async function createPOD(record: CreatePODInput): Promise<PODRecord> {

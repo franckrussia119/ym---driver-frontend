@@ -46,6 +46,7 @@ import { ContainerRegistryView } from './components/ContainerRegistryView';
 import { ContainerDetailView } from './components/ContainerDetailView';
 import { SubcontractorDriversView } from './components/SubcontractorDriversView';
 import { ContainerReturnView } from './components/ContainerReturnView';
+import { ContainerDeliveryView } from './components/ContainerDeliveryView';
 import { ContainerReportsView } from './components/ContainerReportsView';
 import { getWorkspaceBg } from './lib/sidebarColors';
 import { usePolling } from './lib/usePolling';
@@ -75,7 +76,7 @@ import { PreventiveMaintenanceView } from './components/PreventiveMaintenanceVie
 import { ContainerCautionsView } from './components/ContainerCautionsView';
 import { RoutePlanningFuelView } from './components/RoutePlanningFuelView';
 import { DriverPerformanceView } from './components/DriverPerformanceView';
-import { DriverAnalysisView } from './components/DriverAnalysisView';
+import { DriverAnalysisHub } from './components/DriverAnalysisHub';
 import { ProofOfDeliveryView } from './components/ProofOfDeliveryView';
 import { CustomerFeedbackView } from './components/CustomerFeedbackView';
 
@@ -762,7 +763,7 @@ export default function App() {
             )}
 
             {/* 10b. ANALYSE DÉTAILLÉE PAR CHAUFFEUR (nouveau) */}
-            {sidebarTab === 'driver_analysis' && <DriverAnalysisView />}
+            {sidebarTab === 'driver_analysis' && <DriverAnalysisHub />}
 
             {/* 11. PREUVE DE LIVRAISON (POD) VIEW */}
             {sidebarTab === 'proof_of_delivery' && (
@@ -817,6 +818,7 @@ export default function App() {
               />
             )}
             {sidebarTab === 'subcontractor_drivers' && <SubcontractorDriversView />}
+            {sidebarTab === 'container_delivery' && <ContainerDeliveryView />}
             {sidebarTab === 'container_return' && <ContainerReturnView />}
             {sidebarTab === 'container_reports' && <ContainerReportsView />}
           </main>

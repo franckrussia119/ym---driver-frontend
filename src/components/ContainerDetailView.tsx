@@ -212,7 +212,7 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
           {container.carrierType === 'CHAUFFEUR_INTERNE' ? (
             <span className="flex items-center gap-1.5"><UserRound className="w-3.5 h-3.5 text-emerald-400" /> {container.driverNom} (chauffeur)</span>
           ) : container.carrierType === 'SOUS_TRAITANT' ? (
-            <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-amber-400" /> {container.subcontractorNom} (sous-traitant)</span>
+            <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-amber-400" /> {container.subcontractorNom} ({container.subcontractorEntreprise || 'société non renseignée'})</span>
           ) : (
             <span className="text-slate-500 italic">Transporteur non assigné</span>
           )}

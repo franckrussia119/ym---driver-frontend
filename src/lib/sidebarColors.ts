@@ -21,6 +21,7 @@ export const SIDEBAR_TAB_COLORS: Record<string, { active: string; icon: string; 
   // Écrans du module Conteneurs (Superviseur Conteneurs) — mêmes couleurs
   // que dans ContainerSidebar, pour une identité visuelle cohérente.
   container_registry: { active: 'bg-blue-950/60 border-blue-500', icon: 'text-blue-400', workspaceBg: 'bg-blue-50/40' },
+  container_delivery: { active: 'bg-emerald-950/60 border-emerald-500', icon: 'text-emerald-400', workspaceBg: 'bg-emerald-50/40' },
   container_detail: { active: 'bg-blue-950/60 border-blue-500', icon: 'text-blue-400', workspaceBg: 'bg-blue-50/40' },
   subcontractor_drivers: { active: 'bg-amber-950/60 border-amber-500', icon: 'text-amber-400', workspaceBg: 'bg-amber-50/40' },
   container_reports: { active: 'bg-violet-950/60 border-violet-500', icon: 'text-violet-400', workspaceBg: 'bg-violet-50/40' },

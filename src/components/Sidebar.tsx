@@ -52,6 +52,7 @@ export type SidebarTab =
   | 'driver_history' // Historique Chauffeur (POD, Rapports, Avis)
   // --- Module Gestion des Conteneurs (Superviseur Conteneurs) ---
   | 'container_registry'
+  | 'container_delivery'
   | 'container_detail'
   | 'subcontractor_drivers'
   | 'container_return'

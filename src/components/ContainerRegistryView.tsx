@@ -264,7 +264,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
                 {c.carrierType === 'CHAUFFEUR_INTERNE' ? (
                   <><UserRound className="w-3.5 h-3.5 text-emerald-600" /><span className="text-slate-700 font-semibold">{c.driverNom || 'Chauffeur assigné'}</span></>
                 ) : c.carrierType === 'SOUS_TRAITANT' ? (
-                  <><Truck className="w-3.5 h-3.5 text-amber-600" /><span className="text-slate-700 font-semibold">{c.subcontractorNom} (sous-traitant)</span></>
+                  <><Truck className="w-3.5 h-3.5 text-amber-600" /><span className="text-slate-700 font-semibold">{c.subcontractorNom} ({c.subcontractorEntreprise || 'société non renseignée'})</span></>
                 ) : (
                   <span className="text-slate-400 italic">Non assigné</span>
                 )}

@@ -6,6 +6,7 @@ import {
   BarChart3,
   LogOut,
   Truck,
+  PackageCheck,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { SidebarTab } from './Sidebar';
@@ -29,6 +30,12 @@ const NAV_ITEMS: { tab: SidebarTab; label: string; icon: React.ElementType; colo
     label: 'Chauffeurs Sous-traitants',
     icon: Truck,
     colors: { active: 'bg-amber-600 text-white shadow-sm shadow-amber-900/30', iconIdle: 'text-amber-400', dot: 'bg-amber-500' },
+  },
+  {
+    tab: 'container_delivery',
+    label: 'Preuve de Livraison Conteneur',
+    icon: PackageCheck,
+    colors: { active: 'bg-teal-600 text-white shadow-sm shadow-teal-900/30', iconIdle: 'text-teal-400', dot: 'bg-teal-500' },
   },
   {
     tab: 'container_return',
