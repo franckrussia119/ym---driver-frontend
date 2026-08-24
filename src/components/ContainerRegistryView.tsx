@@ -364,6 +364,26 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
                 <label className="font-bold text-slate-700 block mb-1">N° Bill of Lading (BL) *</label>
                 <input type="text" required value={blNumber} onChange={(e) => setBlNumber(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+                {(() => {
+                  const matching = blNumber.trim()
+                    ? containers.filter((c) => c.blNumber.toLowerCase().trim() === blNumber.toLowerCase().trim())
+                    : [];
+                  if (matching.length === 0) return null;
+                  return (
+                    <div className="mt-1.5 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-2 text-[11px] text-blue-800">
+                      <p className="font-bold">
+                        Ce BL a déjà {matching.length} conteneur{matching.length > 1 ? 's' : ''} : {matching.map((c) => c.containerNumber).join(', ')}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => { setPort(matching[0].port); setTerminal(matching[0].terminal); }}
+                        className="underline font-semibold mt-0.5 cursor-pointer"
+                      >
+                        Copier le port et le terminal de ce BL
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

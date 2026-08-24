@@ -129,6 +129,27 @@ export async function listContainers(): Promise<Container[]> {
   return api.get<Container[]>('/api/containers');
 }
 
+// Un même BL couvre souvent plusieurs conteneurs — ces fonctions permettent
+// de les regrouper et de les consulter ensemble, sans jamais forcer le BL
+// à être unique (ce qui serait une erreur : c'est le numéro de conteneur
+// ouvert qui doit être unique, pas le BL).
+export interface BLGroup {
+  blNumber: string;
+  totalContainers: number;
+  ouverts: number;
+  fermes: number;
+  premiereDateCreation: string;
+  ports: ContainerPort[];
+}
+
+export async function listBLGroups(): Promise<BLGroup[]> {
+  return api.get<BLGroup[]>('/api/containers/bls');
+}
+
+export async function getContainersByBL(blNumber: string): Promise<Container[]> {
+  return api.get<Container[]>(`/api/containers/bl/${encodeURIComponent(blNumber)}`);
+}
+
 // Conteneurs assignés au chauffeur, encore ouverts, et PAS ENCORE livrés —
 // alimente le formulaire de création de POD. Un conteneur déjà livré ne
 // doit plus jamais apparaître ici.
