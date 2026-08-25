@@ -91,6 +91,10 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
   const [editContainerNumber, setEditContainerNumber] = useState('');
   const [editSize, setEditSize] = useState<'20' | '40'>('20');
   const [editNotes, setEditNotes] = useState('');
+  const [editClientNom, setEditClientNom] = useState('');
+  const [editClientContact, setEditClientContact] = useState('');
+  const [editContenuDescription, setEditContenuDescription] = useState('');
+  const [editDestinationDechargement, setEditDestinationDechargement] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -102,6 +106,10 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
     setEditContainerNumber(container.containerNumber);
     setEditSize(container.size);
     setEditNotes(container.notes || '');
+    setEditClientNom(container.clientNom || '');
+    setEditClientContact(container.clientContact || '');
+    setEditContenuDescription(container.contenuDescription || '');
+    setEditDestinationDechargement(container.destinationDechargement || '');
     setEditError(null);
     setIsEditOpen(true);
   };
@@ -117,6 +125,10 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
         containerNumber: editContainerNumber,
         size: editSize,
         notes: editNotes,
+        clientNom: editClientNom,
+        clientContact: editClientContact,
+        contenuDescription: editContenuDescription,
+        destinationDechargement: editDestinationDechargement,
       });
       setIsEditOpen(false);
       await fetchContainer();
@@ -303,6 +315,22 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
             <span className="text-slate-500 italic">Transporteur non assigné</span>
           )}
         </div>
+        {(container.clientNom || container.contenuDescription || container.destinationDechargement) && (
+          <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-400">
+            {container.clientNom && (
+              <span className="flex items-center gap-1.5">
+                <UserRound className="w-3.5 h-3.5 text-slate-500" /> {container.clientNom}
+                {container.clientContact && <span> · {container.clientContact}</span>}
+              </span>
+            )}
+            {container.contenuDescription && (
+              <span className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5 text-slate-500" /> {container.contenuDescription}</span>
+            )}
+            {container.destinationDechargement && (
+              <span className="flex items-center gap-1.5"><Ship className="w-3.5 h-3.5 text-slate-500" /> Déchargement : {container.destinationDechargement}</span>
+            )}
+          </div>
+        )}
         {container.status === 'OUVERT' && (
           <button
             onClick={onGoToReturn}
@@ -559,6 +587,28 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
                 <label className="font-bold text-slate-700 block mb-1">Terminal</label>
                 <input type="text" value={editTerminal} onChange={(e) => setEditTerminal(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Client</label>
+                  <input type="text" value={editClientNom} onChange={(e) => setEditClientNom(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Contact Client</label>
+                  <input type="text" value={editClientContact} onChange={(e) => setEditClientContact(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+                </div>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Contenu du Conteneur</label>
+                <input type="text" value={editContenuDescription} onChange={(e) => setEditContenuDescription(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Destination du Déchargement</label>
+                <input type="text" value={editDestinationDechargement} onChange={(e) => setEditDestinationDechargement(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
               </div>
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Notes</label>

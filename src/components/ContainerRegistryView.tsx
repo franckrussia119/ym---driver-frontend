@@ -75,6 +75,10 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
   const [size, setSize] = useState<'20' | '40'>('40');
   const [notes, setNotes] = useState('');
   const [dateLimiteRetour, setDateLimiteRetour] = useState('');
+  const [clientNom, setClientNom] = useState('');
+  const [clientContact, setClientContact] = useState('');
+  const [contenuDescription, setContenuDescription] = useState('');
+  const [destinationDechargement, setDestinationDechargement] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -86,6 +90,10 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
     setSize('40');
     setDateLimiteRetour('');
     setNotes('');
+    setClientNom('');
+    setClientContact('');
+    setContenuDescription('');
+    setDestinationDechargement('');
     setSaveError(null);
   };
 
@@ -98,7 +106,15 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
     setIsSaving(true);
     setSaveError(null);
     try {
-      const created = await createContainer({ blNumber, port, terminal, containerNumber, size, dateLimiteRetour: dateLimiteRetour || undefined, notes: notes || undefined });
+      const created = await createContainer({
+        blNumber, port, terminal, containerNumber, size,
+        dateLimiteRetour: dateLimiteRetour || undefined,
+        notes: notes || undefined,
+        clientNom: clientNom || undefined,
+        clientContact: clientContact || undefined,
+        contenuDescription: contenuDescription || undefined,
+        destinationDechargement: destinationDechargement || undefined,
+      });
       await fetchAll();
       setIsCreateOpen(false);
       resetForm();
@@ -160,7 +176,8 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
     const matchesSearch =
       c.blNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.containerNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.numeroReference.toLowerCase().includes(searchTerm.toLowerCase());
+      c.numeroReference.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.clientNom || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
 
     const createdDateStr = c.createdAt.split('T')[0];
@@ -204,7 +221,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher par BL, N° conteneur, référence…"
+            placeholder="Rechercher par BL, N° conteneur, référence, client…"
             className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>
@@ -299,6 +316,12 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
                 <Ship className="w-3 h-3" />
                 <span>{c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
               </div>
+              {c.clientNom && (
+                <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-600 font-semibold">
+                  <UserRound className="w-3 h-3 text-slate-400" />
+                  <span>{c.clientNom}</span>
+                </div>
+              )}
               <div className="text-[10px] text-slate-400 mt-1">
                 Créé le {new Date(c.createdAt).toLocaleDateString('fr-FR')} à {new Date(c.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 {c.createdByNom ? ` par ${c.createdByNom}` : ''}
@@ -415,6 +438,34 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
                   placeholder="Ex: MSCU1234567"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-semibold" />
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Client (optionnel)</label>
+                  <input type="text" value={clientNom} onChange={(e) => setClientNom(e.target.value)}
+                    placeholder="Ex: SOCAM SARL"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Contact du Client (optionnel)</label>
+                  <input type="text" value={clientContact} onChange={(e) => setClientContact(e.target.value)}
+                    placeholder="Ex: 677889900"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+                </div>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Contenu du Conteneur (optionnel)</label>
+                <input type="text" value={contenuDescription} onChange={(e) => setContenuDescription(e.target.value)}
+                  placeholder="Ex: Pièces détachées automobiles"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Destination du Déchargement (optionnel)</label>
+                <input type="text" value={destinationDechargement} onChange={(e) => setDestinationDechargement(e.target.value)}
+                  placeholder="Ex: Zone Industrielle Bassa, Douala"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+              </div>
+
               <div>
                 <label className="font-bold text-slate-700 block mb-1">
                   Date Limite de Retour (franchise / détention)

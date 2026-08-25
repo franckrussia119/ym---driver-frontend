@@ -111,6 +111,26 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
                   <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">TERMINAL</td>
                   <td className="px-3 py-2 border border-slate-300">{report.container.terminal}</td>
                 </tr>
+                {(report.container.clientNom || report.container.clientContact) && (
+                  <tr>
+                    <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">CLIENT</td>
+                    <td className="px-3 py-2 border border-slate-300">{report.container.clientNom || '—'}</td>
+                    <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">CONTACT CLIENT</td>
+                    <td className="px-3 py-2 border border-slate-300">{report.container.clientContact || '—'}</td>
+                  </tr>
+                )}
+                {report.container.contenuDescription && (
+                  <tr>
+                    <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">CONTENU</td>
+                    <td className="px-3 py-2 border border-slate-300" colSpan={3}>{report.container.contenuDescription}</td>
+                  </tr>
+                )}
+                {report.container.destinationDechargement && (
+                  <tr>
+                    <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">DÉCHARGEMENT</td>
+                    <td className="px-3 py-2 border border-slate-300" colSpan={3}>{report.container.destinationDechargement}</td>
+                  </tr>
+                )}
                 <tr>
                   <td className="bg-slate-100 font-bold px-3 py-2 border border-slate-300 text-slate-700">DATE D'OUVERTURE</td>
                   <td className="px-3 py-2 border border-slate-300">{new Date(report.dateOuverture).toLocaleDateString('fr-FR')}</td>

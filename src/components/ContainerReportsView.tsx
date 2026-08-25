@@ -177,6 +177,13 @@ export const ContainerReportsView: React.FC = () => {
               <div className="font-mono text-xs text-blue-400">{report.container.numeroReference}</div>
               <h2 className="text-lg font-bold mt-0.5">{report.container.containerNumber}</h2>
               <p className="text-xs text-slate-400">BL: {report.container.blNumber} · {report.container.port === 'Douala' ? 'PAD' : 'PAK'} · {report.container.terminal}</p>
+              {(report.container.clientNom || report.container.contenuDescription || report.container.destinationDechargement) && (
+                <div className="flex flex-wrap items-center gap-3 mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+                  {report.container.clientNom && <span>Client : <span className="text-slate-200 font-semibold">{report.container.clientNom}</span>{report.container.clientContact && ` (${report.container.clientContact})`}</span>}
+                  {report.container.contenuDescription && <span>Contenu : <span className="text-slate-200">{report.container.contenuDescription}</span></span>}
+                  {report.container.destinationDechargement && <span>Déchargement : <span className="text-slate-200">{report.container.destinationDechargement}</span></span>}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

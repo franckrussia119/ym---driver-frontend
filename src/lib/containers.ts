@@ -85,6 +85,10 @@ export interface Container {
   fraisDepotFCFA: number;
   fraisSupplementairesFCFA: number;
   fraisSupplementairesNote: string | null;
+  clientNom: string | null;
+  clientContact: string | null;
+  contenuDescription: string | null;
+  destinationDechargement: string | null;
   notes: string | null;
 }
 
@@ -97,7 +101,7 @@ export interface ContainerWithDetails extends Container {
 }
 
 export interface ContainerReport {
-  container: Pick<Container, 'id' | 'numeroReference' | 'blNumber' | 'containerNumber' | 'port' | 'terminal' | 'size' | 'status' | 'dateLimiteRetour'>;
+  container: Pick<Container, 'id' | 'numeroReference' | 'blNumber' | 'containerNumber' | 'port' | 'terminal' | 'size' | 'status' | 'dateLimiteRetour' | 'clientNom' | 'clientContact' | 'contenuDescription' | 'destinationDechargement'>;
   isOuvert: boolean;
   dateOuverture: string;
   dateFermeture: string | null;
@@ -176,6 +180,10 @@ export interface CreateContainerInput {
   size: ContainerSize;
   dateLimiteRetour?: string;
   notes?: string;
+  clientNom?: string;
+  clientContact?: string;
+  contenuDescription?: string;
+  destinationDechargement?: string;
 }
 
 export async function createContainer(input: CreateContainerInput): Promise<ContainerWithDetails> {
@@ -189,6 +197,10 @@ export interface UpdateContainerInput {
   containerNumber?: string;
   size?: ContainerSize;
   notes?: string;
+  clientNom?: string;
+  clientContact?: string;
+  contenuDescription?: string;
+  destinationDechargement?: string;
 }
 
 export async function updateContainer(id: string, input: UpdateContainerInput): Promise<ContainerWithDetails> {
