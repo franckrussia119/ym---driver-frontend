@@ -11,6 +11,7 @@ import {
   Upload,
   Truck,
   UserRound,
+  RotateCcw,
   Lock,
   Unlock,
   Ticket,
@@ -38,6 +39,8 @@ import {
 } from '../lib/containers';
 import { uploadFile, ApiError } from '../lib/api';
 import { usePolling } from '../lib/usePolling';
+import { PrintableTransportOrderView } from './PrintableTransportOrderView';
+import { PrintableReturnOrderView } from './PrintableReturnOrderView';
 
 interface ContainerDetailViewProps {
   containerId: string;
@@ -140,6 +143,8 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
   };
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isTransportOrderOpen, setIsTransportOrderOpen] = useState(false);
+  const [isReturnOrderOpen, setIsReturnOrderOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -282,6 +287,20 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
             <p className="text-xs text-slate-400 mt-0.5">BL: {container.blNumber}</p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsTransportOrderOpen(true)}
+              className="px-2.5 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 text-teal-200 text-[11px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1"
+            >
+              <FileText className="w-3 h-3" /> Ordre de Transport
+            </button>
+            {container.pod.length > 0 && container.status === 'OUVERT' && (
+              <button
+                onClick={() => setIsReturnOrderOpen(true)}
+                className="px-2.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 text-[11px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" /> Ordre de Retour
+              </button>
+            )}
             <button
               onClick={() => openEdit()}
               className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1"
@@ -629,6 +648,16 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL: Ordre de Transport imprimable */}
+      {isTransportOrderOpen && (
+        <PrintableTransportOrderView container={container} onClose={() => setIsTransportOrderOpen(false)} />
+      )}
+
+      {/* MODAL: Ordre de Retour imprimable */}
+      {isReturnOrderOpen && (
+        <PrintableReturnOrderView container={container} onClose={() => setIsReturnOrderOpen(false)} />
       )}
 
       {/* MODAL: Confirmer la suppression */}

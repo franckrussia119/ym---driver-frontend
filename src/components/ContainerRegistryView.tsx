@@ -17,6 +17,7 @@ import {
   listContainers,
   createContainer,
   assignCarrier,
+  updateContainer,
 } from '../lib/containers';
 import { listSubcontractorDrivers, SubcontractorDriver } from '../lib/subcontractors';
 import { listDrivers, DriverOption } from '../lib/users';
@@ -131,6 +132,9 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
   const [carrierType, setCarrierType] = useState<'CHAUFFEUR_INTERNE' | 'SOUS_TRAITANT'>('CHAUFFEUR_INTERNE');
   const [selectedDriverId, setSelectedDriverId] = useState('');
   const [selectedSubcontractorId, setSelectedSubcontractorId] = useState('');
+  const [assignCamion, setAssignCamion] = useState('');
+  const [assignRemorque, setAssignRemorque] = useState('');
+  const [assignTarif, setAssignTarif] = useState(0);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
 
@@ -147,6 +151,9 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
     setCarrierType(c.carrierType || 'CHAUFFEUR_INTERNE');
     setSelectedDriverId(c.assignedDriverId || '');
     setSelectedSubcontractorId(c.assignedSubcontractorId || '');
+    setAssignCamion(c.immatriculationCamionTrajet || '');
+    setAssignRemorque(c.remorqueTrajet || '');
+    setAssignTarif(c.tarifConvenuFCFA || 0);
     setAssignError(null);
   };
 
@@ -160,7 +167,12 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
         carrierType,
         driverId: carrierType === 'CHAUFFEUR_INTERNE' ? selectedDriverId : undefined,
         subcontractorId: carrierType === 'SOUS_TRAITANT' ? selectedSubcontractorId : undefined,
+        immatriculationCamionTrajet: assignCamion || undefined,
+        remorqueTrajet: assignRemorque || undefined,
       });
+      if (assignTarif !== (assignTarget.tarifConvenuFCFA || 0)) {
+        await updateContainer(assignTarget.id, { tarifConvenuFCFA: assignTarif });
+      }
       await fetchAll();
       setAssignTarget(null);
     } catch (err) {
@@ -551,6 +563,28 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
                   )}
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Camion (ce trajet)</label>
+                  <input type="text" value={assignCamion} onChange={(e) => setAssignCamion(e.target.value)}
+                    placeholder="Ex: LT-100-AA"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-semibold" />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Remorque</label>
+                  <input type="text" value={assignRemorque} onChange={(e) => setAssignRemorque(e.target.value)}
+                    placeholder="Ex: RQ-200-BB"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono font-semibold" />
+                </div>
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Tarif Convenu (FCFA)</label>
+                <input type="number" min={0} value={assignTarif} onChange={(e) => setAssignTarif(Number(e.target.value))}
+                  placeholder="0"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold" />
+                <p className="text-[10px] text-slate-400 mt-1">Apparaîtra sur l'Ordre de Transport imprimé pour le chauffeur.</p>
+              </div>
 
               {assignError && <p className="text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{assignError}</p>}
               <div className="flex justify-end gap-2 pt-2">

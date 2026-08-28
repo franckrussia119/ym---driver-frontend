@@ -89,6 +89,10 @@ export interface Container {
   clientContact: string | null;
   contenuDescription: string | null;
   destinationDechargement: string | null;
+  immatriculationCamionTrajet: string | null;
+  remorqueTrajet: string | null;
+  tarifConvenuFCFA: number;
+  documentsRequis: string | null;
   notes: string | null;
 }
 
@@ -201,6 +205,10 @@ export interface UpdateContainerInput {
   clientContact?: string;
   contenuDescription?: string;
   destinationDechargement?: string;
+  tarifConvenuFCFA?: number;
+  documentsRequis?: string;
+  immatriculationCamionTrajet?: string;
+  remorqueTrajet?: string;
 }
 
 export async function updateContainer(id: string, input: UpdateContainerInput): Promise<ContainerWithDetails> {
@@ -251,7 +259,7 @@ export async function listReturnsHistory(): Promise<ContainerReturnHistoryItem[]
 
 export async function assignCarrier(
   id: string,
-  input: { carrierType: CarrierType; driverId?: string; subcontractorId?: string }
+  input: { carrierType: CarrierType; driverId?: string; subcontractorId?: string; immatriculationCamionTrajet?: string; remorqueTrajet?: string }
 ): Promise<ContainerWithDetails> {
   return api.patch<ContainerWithDetails>(`/api/containers/${id}/assign`, input);
 }
