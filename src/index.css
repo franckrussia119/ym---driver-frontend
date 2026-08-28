@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+/* Isolation d'impression : par défaut, un clic sur "Imprimer" dans une
+   modale imprimable (Ordre de Transport, Ordre de Retour, Rapport
+   Conteneur...) imprimait TOUTE la page derrière elle (barre latérale,
+   boutons, pipeline...) en plus du document lui-même, car la modale ne
+   masquait que son propre en-tête non imprimable. Cette règle masque
+   TOUT le reste de la page à l'impression, quel que soit l'endroit du
+   DOM où il se trouve, et ne rend visible que le document marqué
+   ".print-isolate". */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-isolate,
+  .print-isolate * {
+    visibility: visible;
+  }
+  .print-isolate {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+  }
+  /* "visibility: hidden" hides content visually but still leaves it taking
+     up layout space, which can make the browser think the document spans
+     several pages and repeat the fixed-position printable content onto
+     each phantom page. Collapsing body's own height fixes this, since the
+     printable content is fixed-position and independent of body's flow. */
+  html,
+  body {
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
