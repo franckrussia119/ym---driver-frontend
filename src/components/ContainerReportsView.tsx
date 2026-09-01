@@ -15,6 +15,7 @@ import {
   Search,
   Truck,
   FileText,
+  UserRound,
 } from 'lucide-react';
 import { formatFCFA } from '../types';
 import { Container, ContainerReport, BLGroup, RevenueSummary, OpsBoardItem, listContainers, getContainerReport, listBLGroups, getContainersByBL, getRevenueSummary, getOpsBoard } from '../lib/containers';
@@ -148,7 +149,7 @@ export const ContainerReportsView: React.FC = () => {
   // Filtres — Rapport Opérations
   const [opsPortFilter, setOpsPortFilter] = useState<'ALL' | 'Douala' | 'Kribi'>('ALL');
   const [opsStatusFilter, setOpsStatusFilter] = useState<'ALL' | 'OUVERT' | 'FERME'>('ALL');
-  const [opsCarrierFilter, setOpsCarrierFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
+  const [opsCarrierFilter, setOpsCarrierFilter] = useState<'ALL' | 'ASSIGNED' | 'CHAUFFEUR_INTERNE' | 'SOUS_TRAITANT' | 'UNASSIGNED'>('ALL');
   const [opsFromDate, setOpsFromDate] = useState('');
   const [opsToDate, setOpsToDate] = useState('');
   const [opsAgentFilter, setOpsAgentFilter] = useState('');
@@ -362,7 +363,7 @@ export const ContainerReportsView: React.FC = () => {
   const goToOperationsWith = (filters: {
     status?: 'ALL' | 'OUVERT' | 'FERME';
     port?: 'ALL' | 'Douala' | 'Kribi';
-    carrier?: 'ALL' | 'ASSIGNED' | 'UNASSIGNED';
+    carrier?: 'ALL' | 'ASSIGNED' | 'CHAUFFEUR_INTERNE' | 'SOUS_TRAITANT' | 'UNASSIGNED';
   }) => {
     setOpsStatusFilter(filters.status ?? 'ALL');
     setOpsPortFilter(filters.port ?? 'ALL');
@@ -378,6 +379,8 @@ export const ContainerReportsView: React.FC = () => {
     if (opsStatusFilter !== 'ALL' && c.status !== opsStatusFilter) return false;
     if (opsCarrierFilter === 'ASSIGNED' && !c.carrierType) return false;
     if (opsCarrierFilter === 'UNASSIGNED' && c.carrierType) return false;
+    if (opsCarrierFilter === 'CHAUFFEUR_INTERNE' && c.carrierType !== 'CHAUFFEUR_INTERNE') return false;
+    if (opsCarrierFilter === 'SOUS_TRAITANT' && c.carrierType !== 'SOUS_TRAITANT') return false;
     if (opsFromDate && c.createdAt < opsFromDate) return false;
     if (opsToDate && c.createdAt > `${opsToDate}T23:59:59`) return false;
     if (opsAgentFilter && !(c.createdByNom || '').toLowerCase().includes(opsAgentFilter.toLowerCase())) return false;
@@ -447,7 +450,9 @@ export const ContainerReportsView: React.FC = () => {
               <select value={opsCarrierFilter} onChange={(e) => setOpsCarrierFilter(e.target.value as any)}
                 className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold">
                 <option value="ALL">Tous</option>
-                <option value="ASSIGNED">Assigné</option>
+                <option value="ASSIGNED">Assigné (Nos Chauffeurs + Sous-traitants)</option>
+                <option value="CHAUFFEUR_INTERNE">Nos Chauffeurs</option>
+                <option value="SOUS_TRAITANT">Sous-traitants</option>
                 <option value="UNASSIGNED">Sans transporteur</option>
               </select>
             </div>
@@ -468,6 +473,47 @@ export const ContainerReportsView: React.FC = () => {
                 className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg" />
             </div>
           </div>
+
+          {(() => {
+            // Compte chaque catégorie de transporteur en respectant les
+            // AUTRES filtres actifs (statut, port, dates, agent) — pour que
+            // les chiffres sur ces boutons restent cohérents avec le reste
+            // de l'écran, sans être eux-mêmes limités par le filtre transporteur.
+            const baseForCarrierCounts = containers.filter((c) => {
+              if (opsStatusFilter !== 'ALL' && c.status !== opsStatusFilter) return false;
+              if (opsPortFilter !== 'ALL' && c.port !== opsPortFilter) return false;
+              if (opsFromDate && c.createdAt < opsFromDate) return false;
+              if (opsToDate && c.createdAt > `${opsToDate}T23:59:59`) return false;
+              if (opsAgentFilter && !(c.createdByNom || '').toLowerCase().includes(opsAgentFilter.toLowerCase())) return false;
+              return true;
+            });
+            const countChauffeurs = baseForCarrierCounts.filter((c) => c.carrierType === 'CHAUFFEUR_INTERNE').length;
+            const countSousTraitants = baseForCarrierCounts.filter((c) => c.carrierType === 'SOUS_TRAITANT').length;
+            const countSansTransporteur = baseForCarrierCounts.filter((c) => !c.carrierType).length;
+            return (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Transporteur :</span>
+                {([
+                  ['ALL', 'Tous', baseForCarrierCounts.length, Truck],
+                  ['CHAUFFEUR_INTERNE', 'Nos Chauffeurs', countChauffeurs, UserRound],
+                  ['SOUS_TRAITANT', 'Sous-traitants', countSousTraitants, Truck],
+                  ['UNASSIGNED', 'Sans Transporteur', countSansTransporteur, AlertTriangle],
+                ] as [typeof opsCarrierFilter, string, number, React.ElementType][]).map(([value, label, count, Icon]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setOpsCarrierFilter(value)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 ${
+                      opsCarrierFilter === value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label} ({count})
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
@@ -515,9 +561,18 @@ export const ContainerReportsView: React.FC = () => {
                         </div>
                       </div>
                       {c.clientNom && <p className="text-[11px] text-slate-500 mt-2 truncate">{c.clientNom}</p>}
-                      <p className="text-[11px] text-slate-400 mt-1 truncate">
-                        {carrierLabel || <span className="italic text-rose-500">Non assigné</span>}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <p className="text-[11px] text-slate-400 truncate flex-1">
+                          {carrierLabel || <span className="italic text-rose-500">Non assigné</span>}
+                        </p>
+                        {c.carrierType && (
+                          <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                            c.carrierType === 'CHAUFFEUR_INTERNE' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+                          }`}>
+                            {c.carrierType === 'CHAUFFEUR_INTERNE' ? 'Interne' : 'Sous-traitant'}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-100">Créé par {c.createdByNom || '—'}</p>
                     </button>
                   );
