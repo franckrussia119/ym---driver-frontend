@@ -13,16 +13,17 @@ import {
   History,
   ChevronRight,
   Search,
+  Truck,
 } from 'lucide-react';
 import { formatFCFA } from '../types';
-import { Container, ContainerReport, BLGroup, listContainers, getContainerReport, listBLGroups, getContainersByBL } from '../lib/containers';
+import { Container, ContainerReport, BLGroup, RevenueSummary, OpsBoardItem, listContainers, getContainerReport, listBLGroups, getContainersByBL, getRevenueSummary, getOpsBoard } from '../lib/containers';
 import { PrintableContainerReportView } from './PrintableContainerReportView';
 import { usePolling } from '../lib/usePolling';
 import { listPOD } from '../lib/pod';
 import { PODRecord } from './ProofOfDeliveryView';
 import { ApiError } from '../lib/api';
 
-type ViewMode = 'dashboard' | 'operations' | 'deliveries' | 'byBl';
+type ViewMode = 'dashboard' | 'operations' | 'deliveries' | 'byBl' | 'opsBoard';
 
 export const ContainerReportsView: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
@@ -73,6 +74,44 @@ export const ContainerReportsView: React.FC = () => {
   const [selectedBl, setSelectedBl] = useState<string | null>(null);
   const [blContainers, setBlContainers] = useState<Container[]>([]);
   const [isLoadingBlContainers, setIsLoadingBlContainers] = useState(false);
+
+  const [revenueSummary, setRevenueSummary] = useState<RevenueSummary | null>(null);
+
+  const fetchRevenueSummary = useCallback(async () => {
+    try {
+      setRevenueSummary(await getRevenueSummary());
+    } catch {
+      /* silencieux : les cartes de revenu restent vides si le chargement échoue */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (viewMode === 'dashboard') fetchRevenueSummary();
+  }, [viewMode, fetchRevenueSummary]);
+
+  usePolling(() => { fetchRevenueSummary(); }, 15000, viewMode === 'dashboard');
+
+  const [opsBoardItems, setOpsBoardItems] = useState<OpsBoardItem[]>([]);
+  const [isLoadingOpsBoard, setIsLoadingOpsBoard] = useState(false);
+  const [opsBoardError, setOpsBoardError] = useState<string | null>(null);
+
+  const fetchOpsBoard = useCallback(async () => {
+    setIsLoadingOpsBoard(true);
+    setOpsBoardError(null);
+    try {
+      setOpsBoardItems(await getOpsBoard());
+    } catch (err) {
+      setOpsBoardError(err instanceof ApiError ? err.message : 'Impossible de charger le suivi en direct.');
+    } finally {
+      setIsLoadingOpsBoard(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (viewMode === 'opsBoard') fetchOpsBoard();
+  }, [viewMode, fetchOpsBoard]);
+
+  usePolling(() => { fetchOpsBoard(); }, 12000, viewMode === 'opsBoard');
 
   const fetchBlGroups = useCallback(async () => {
     setIsLoadingBlGroups(true);
@@ -222,6 +261,17 @@ export const ContainerReportsView: React.FC = () => {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4">
+                <span className="text-xs font-semibold text-slate-500 block mb-1">Tarif Convenu (Revenu)</span>
+                <span className="text-lg font-bold text-slate-900">{report.tarifConvenuFCFA > 0 ? formatFCFA(report.tarifConvenuFCFA) : 'Non renseigné'}</span>
+              </div>
+              <div className={`rounded-2xl border shadow-xs p-4 ${report.margeFCFA >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                <span className={`text-xs font-semibold block mb-1 ${report.margeFCFA >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>Marge (Revenu − Coûts)</span>
+                <span className={`text-lg font-bold ${report.margeFCFA >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>{formatFCFA(report.margeFCFA)}</span>
+              </div>
+            </div>
+
             {report.incidents.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="p-4 bg-slate-50 border-b border-slate-200">
@@ -304,6 +354,7 @@ export const ContainerReportsView: React.FC = () => {
   const totalFermes = containers.filter((c) => c.status === 'FERME').length;
   const parPort = { Douala: containers.filter((c) => c.port === 'Douala').length, Kribi: containers.filter((c) => c.port === 'Kribi').length };
   const nonAssignes = containers.filter((c) => c.status === 'OUVERT' && !c.carrierType).length;
+  const assignes = containers.filter((c) => c.status === 'OUVERT' && c.carrierType).length;
 
   // Un clic sur une carte KPI ouvre directement le Rapport Opérations avec
   // le filtre correspondant déjà appliqué — pas besoin de re-filtrer à la main.
@@ -351,6 +402,7 @@ export const ContainerReportsView: React.FC = () => {
 
       <div className="flex flex-wrap gap-2">
         {([
+          ['opsBoard', 'Suivi en Direct'],
           ['dashboard', 'Tableau de Bord'],
           ['operations', 'Rapport Opérations'],
           ['deliveries', 'Rapport Livraisons'],
@@ -450,6 +502,101 @@ export const ContainerReportsView: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {viewMode === 'opsBoard' && (
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Où en est chaque conteneur ouvert en ce moment — mis à jour automatiquement toutes les 12 secondes.
+          </p>
+          {isLoadingOpsBoard ? (
+            <div className="p-10 flex items-center justify-center text-slate-400 gap-2 bg-white rounded-2xl border border-slate-200">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Chargement…
+            </div>
+          ) : opsBoardError ? (
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl p-4 flex items-center justify-between">
+              {opsBoardError}
+              <button onClick={fetchOpsBoard} className="underline cursor-pointer">Réessayer</button>
+            </div>
+          ) : opsBoardItems.length === 0 ? (
+            <div className="p-10 text-center text-slate-400 text-sm bg-white rounded-2xl border border-slate-200">
+              Aucun conteneur ouvert en ce moment.
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-left">
+                    <th className="px-3 py-2.5 font-bold text-slate-500">N° Réf.</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Client</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Conteneur</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Port</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Chauffeur</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Camion</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Étape Actuelle</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">POD</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Retour</th>
+                    <th className="px-3 py-2.5 font-bold text-slate-500">Incidents</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {opsBoardItems.map((item) => {
+                    const carrierLabel =
+                      item.carrierType === 'CHAUFFEUR_INTERNE' ? item.driverNom
+                      : item.carrierType === 'SOUS_TRAITANT' ? item.subcontractorNom
+                      : null;
+                    return (
+                      <tr key={item.id} onClick={() => openReport(item.id)} className="hover:bg-slate-50/70 cursor-pointer transition-colors">
+                        <td className="px-3 py-2.5 font-mono text-blue-700 font-bold whitespace-nowrap">{item.numeroReference}</td>
+                        <td className="px-3 py-2.5">{item.clientNom || '—'}</td>
+                        <td className="px-3 py-2.5">
+                          <span className="font-semibold">{item.containerNumber}</span>
+                          <span className="text-slate-400 block text-[10px]">BL {item.blNumber}</span>
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">{item.port === 'Douala' ? 'PAD' : 'PAK'} · {item.terminal}</td>
+                        <td className="px-3 py-2.5">
+                          {carrierLabel || <span className="text-rose-500 italic">Non assigné</span>}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono">{item.immatriculationCamionTrajet || '—'}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          {item.currentStepName ? (
+                            <span>#{item.currentStepNumber} {item.currentStepName}</span>
+                          ) : (
+                            <span className="text-emerald-600 font-semibold">Terminé</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            item.hasPod ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}>
+                            {item.hasPod ? 'Reçue' : 'En attente'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {item.estEnRetard ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-rose-50 text-rose-700 border-rose-200">En retard</span>
+                          ) : item.dateLimiteRetour ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-blue-50 text-blue-700 border-blue-200">Dans les délais</span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          {item.incidentsCount > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-50 text-amber-700 border-amber-200">{item.incidentsCount}</span>
+                          ) : (
+                            <span className="text-slate-300">0</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -639,10 +786,11 @@ export const ContainerReportsView: React.FC = () => {
 
       {!isLoading && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <StatCard icon={Package} label="Total Conteneurs" value={containers.length} accent="blue" onClick={() => goToOperationsWith({})} />
             <StatCard icon={Clock} label="Actuellement Ouverts" value={totalOuverts} accent="amber" onClick={() => goToOperationsWith({ status: 'OUVERT' })} />
             <StatCard icon={CheckCircle2} label="Clôturés" value={totalFermes} accent="emerald" onClick={() => goToOperationsWith({ status: 'FERME' })} />
+            <StatCard icon={Truck} label="Avec Transporteur" value={assignes} accent="blue" onClick={() => goToOperationsWith({ status: 'OUVERT', carrier: 'ASSIGNED' })} />
             <StatCard icon={AlertTriangle} label="Sans Transporteur" value={nonAssignes} accent={nonAssignes > 0 ? 'rose' : 'emerald'} onClick={() => goToOperationsWith({ status: 'OUVERT', carrier: 'UNASSIGNED' })} />
           </div>
 
@@ -664,6 +812,31 @@ export const ContainerReportsView: React.FC = () => {
               <span className="text-2xl font-bold text-slate-900 block mt-1">{parPort.Kribi}</span>
             </button>
           </div>
+
+          {revenueSummary && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5"><Wallet className="w-4 h-4 text-emerald-600" /> Synthèse Financière</h3>
+                {revenueSummary.containersWithoutRate > 0 && (
+                  <span className="text-[11px] text-amber-600 font-semibold">{revenueSummary.containersWithoutRate} conteneur(s) sans tarif renseigné</span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Revenu Total (Tarifs Convenus)</span>
+                  <span className="text-lg font-bold text-slate-900">{formatFCFA(revenueSummary.totalRevenueFCFA)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Coûts Totaux</span>
+                  <span className="text-lg font-bold text-slate-900">{formatFCFA(revenueSummary.totalCostsFCFA)}</span>
+                </div>
+                <div className={`rounded-xl px-3 py-2 -m-1 border ${revenueSummary.totalMargeFCFA >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                  <span className={`text-[10px] font-bold uppercase block ${revenueSummary.totalMargeFCFA >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>Marge</span>
+                  <span className={`text-lg font-bold ${revenueSummary.totalMargeFCFA >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>{formatFCFA(revenueSummary.totalMargeFCFA)}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200">

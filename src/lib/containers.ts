@@ -123,6 +123,8 @@ export interface ContainerReport {
   montantFraisSupplementairesFCFA: number;
   fraisSupplementairesNote: string | null;
   montantTotalFCFA: number;
+  tarifConvenuFCFA: number;
+  margeFCFA: number;
   stepsCompleted: number;
   stepsTotal: number;
   stepsBlocked: number;
@@ -152,6 +154,33 @@ export interface BLGroup {
 
 export async function listBLGroups(): Promise<BLGroup[]> {
   return api.get<BLGroup[]>('/api/containers/bls');
+}
+
+// Tableau de bord opérationnel en direct — où en est chaque conteneur
+// ouvert, sans avoir à ouvrir chacun individuellement.
+export interface OpsBoardItem extends Container {
+  hasPod: boolean;
+  currentStepName: string | null;
+  currentStepNumber: number | null;
+  incidentsCount: number;
+  estEnRetard: boolean;
+}
+
+export async function getOpsBoard(): Promise<OpsBoardItem[]> {
+  return api.get<OpsBoardItem[]>('/api/containers/ops-board');
+}
+
+export interface RevenueSummary {
+  totalContainers: number;
+  containersWithRate: number;
+  containersWithoutRate: number;
+  totalRevenueFCFA: number;
+  totalCostsFCFA: number;
+  totalMargeFCFA: number;
+}
+
+export async function getRevenueSummary(): Promise<RevenueSummary> {
+  return api.get<RevenueSummary>('/api/containers/revenue-summary');
 }
 
 export async function getContainersByBL(blNumber: string): Promise<Container[]> {
