@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Search,
   Truck,
+  FileText,
 } from 'lucide-react';
 import { formatFCFA } from '../types';
 import { Container, ContainerReport, BLGroup, RevenueSummary, OpsBoardItem, listContainers, getContainerReport, listBLGroups, getContainersByBL, getRevenueSummary, getOpsBoard } from '../lib/containers';
@@ -484,21 +485,43 @@ export const ContainerReportsView: React.FC = () => {
             {filteredOps.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Aucun résultat pour ces filtres.</div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {filteredOps.map((c) => (
-                  <button key={c.id} onClick={() => openReport(c.id)}
-                    className="w-full text-left p-3.5 flex items-center justify-between text-xs hover:bg-slate-50/70 transition-colors cursor-pointer">
-                    <div>
-                      <span className="font-mono font-bold text-blue-700 block">{c.numeroReference}</span>
-                      <span className="text-slate-500">{c.containerNumber} · {c.port === 'Douala' ? 'PAD' : 'PAK'} · Créé par {c.createdByNom || '—'}</span>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      c.status === 'OUVERT' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-500 border-slate-200'
-                    }`}>
-                      {c.status === 'OUVERT' ? 'Ouvert' : 'Fermé'}
-                    </span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+                {filteredOps.map((c) => {
+                  const carrierLabel =
+                    c.carrierType === 'CHAUFFEUR_INTERNE' ? c.driverNom
+                    : c.carrierType === 'SOUS_TRAITANT' ? c.subcontractorNom
+                    : null;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => openReport(c.id)}
+                      className="text-left bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-sm transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-bold text-blue-700 text-xs truncate">{c.numeroReference}</span>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          c.status === 'OUVERT' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-500 border-slate-200'
+                        }`}>
+                          {c.status === 'OUVERT' ? 'Ouvert' : 'Fermé'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2.5 mt-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                          <Package className="w-4.5 h-4.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-sm text-slate-900 block truncate">{c.containerNumber}</span>
+                          <span className="text-[11px] text-slate-500">BL {c.blNumber} · {c.port === 'Douala' ? 'PAD' : 'PAK'}</span>
+                        </div>
+                      </div>
+                      {c.clientNom && <p className="text-[11px] text-slate-500 mt-2 truncate">{c.clientNom}</p>}
+                      <p className="text-[11px] text-slate-400 mt-1 truncate">
+                        {carrierLabel || <span className="italic text-rose-500">Non assigné</span>}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-100">Créé par {c.createdByNom || '—'}</p>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -621,22 +644,30 @@ export const ContainerReportsView: React.FC = () => {
                     Chargement…
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
                     {blContainers.map((c) => (
                       <button
                         key={c.id}
                         onClick={() => openReport(c.id)}
-                        className="w-full text-left p-3.5 flex items-center justify-between text-xs hover:bg-slate-50/70 transition-colors cursor-pointer"
+                        className="text-left bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-blue-400 hover:shadow-sm transition-all cursor-pointer"
                       >
-                        <div>
-                          <span className="font-mono font-bold text-blue-700 block">{c.numeroReference}</span>
-                          <span className="text-slate-600 font-semibold">{c.containerNumber} · {c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono font-bold text-blue-700 text-xs truncate">{c.numeroReference}</span>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            c.status === 'OUVERT' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}>
+                            {c.status === 'OUVERT' ? 'Ouvert' : 'Fermé'}
+                          </span>
                         </div>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                          c.status === 'OUVERT' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-500 border-slate-200'
-                        }`}>
-                          {c.status === 'OUVERT' ? 'Ouvert' : 'Fermé'}
-                        </span>
+                        <div className="flex items-center gap-2.5 mt-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                            <Package className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-bold text-sm text-slate-900 block truncate">{c.containerNumber}</span>
+                            <span className="text-[11px] text-slate-500">{c.port === 'Douala' ? 'PAD' : 'PAK'} · {c.terminal} · {c.size}'</span>
+                          </div>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -742,25 +773,33 @@ export const ContainerReportsView: React.FC = () => {
             ) : filteredDeliveries.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">Aucune livraison pour ces filtres.</div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
                 {filteredDeliveries.map((d) => (
-                  <div key={d.id} className="p-3.5 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-mono font-bold text-blue-700 block">{d.numeroReference}</span>
-                      <span className="text-slate-500">{d.recipientName} · {d.dateTime} · BL {d.blNumber}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {d.bordereauPhotoUrl && (
-                        <a href={d.bordereauPhotoUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-600 font-bold underline">
-                          Preuve
-                        </a>
-                      )}
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                  <div key={d.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-bold text-blue-700 text-xs truncate">{d.numeroReference}</span>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                         d.status === 'LIVRE_CONFORME' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         {d.status}
                       </span>
                     </div>
+                    <div className="flex items-center gap-2.5 mt-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <FileText className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-bold text-sm text-slate-900 block truncate">{d.recipientName}</span>
+                        <span className="text-[11px] text-slate-500">BL {d.blNumber}</span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">{d.dateTime}</p>
+                    {d.bordereauPhotoUrl && (
+                      <a href={d.bordereauPhotoUrl} target="_blank" rel="noreferrer"
+                        className="inline-block mt-2 text-[10px] text-blue-600 font-bold underline">
+                        Voir la preuve
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>

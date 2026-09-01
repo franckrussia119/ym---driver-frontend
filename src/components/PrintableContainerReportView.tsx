@@ -198,6 +198,18 @@ export const PrintableContainerReportView: React.FC<PrintableContainerReportView
             {report.fraisSupplementairesNote && (
               <p className="text-[9px] text-slate-500 italic mt-1">Note frais supplémentaires : {report.fraisSupplementairesNote}</p>
             )}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="border border-slate-300 rounded p-2.5 text-center">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">Tarif Convenu (Revenu)</span>
+                <span className="text-sm font-black text-slate-900 block mt-1">
+                  {report.tarifConvenuFCFA > 0 ? formatFCFA(report.tarifConvenuFCFA) : 'Non renseigné'}
+                </span>
+              </div>
+              <div className={`border rounded p-2.5 text-center ${report.margeFCFA >= 0 ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}>
+                <span className={`text-[9px] font-bold uppercase block ${report.margeFCFA >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>Marge (Revenu − Coûts)</span>
+                <span className={`text-sm font-black block mt-1 ${report.margeFCFA >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>{formatFCFA(report.margeFCFA)}</span>
+              </div>
+            </div>
           </div>
 
           {/* SECTION 3: CHRONOLOGIE */}
