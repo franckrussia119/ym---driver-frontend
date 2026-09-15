@@ -89,6 +89,7 @@ export interface Container {
   clientContact: string | null;
   contenuDescription: string | null;
   destinationDechargement: string | null;
+  depotRetourPrevu: string | null;
   immatriculationCamionTrajet: string | null;
   remorqueTrajet: string | null;
   tarifConvenuFCFA: number;
@@ -217,6 +218,7 @@ export interface CreateContainerInput {
   clientContact?: string;
   contenuDescription?: string;
   destinationDechargement?: string;
+  depotRetourPrevu?: string;
 }
 
 export async function createContainer(input: CreateContainerInput): Promise<ContainerWithDetails> {
@@ -234,6 +236,7 @@ export interface UpdateContainerInput {
   clientContact?: string;
   contenuDescription?: string;
   destinationDechargement?: string;
+  depotRetourPrevu?: string;
   tarifConvenuFCFA?: number;
   documentsRequis?: string;
   immatriculationCamionTrajet?: string;

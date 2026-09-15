@@ -80,6 +80,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
   const [clientContact, setClientContact] = useState('');
   const [contenuDescription, setContenuDescription] = useState('');
   const [destinationDechargement, setDestinationDechargement] = useState('');
+  const [depotRetourPrevu, setDepotRetourPrevu] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -95,6 +96,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
     setClientContact('');
     setContenuDescription('');
     setDestinationDechargement('');
+    setDepotRetourPrevu('');
     setSaveError(null);
   };
 
@@ -115,6 +117,7 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
         clientContact: clientContact || undefined,
         contenuDescription: contenuDescription || undefined,
         destinationDechargement: destinationDechargement || undefined,
+        depotRetourPrevu: depotRetourPrevu || undefined,
       });
       await fetchAll();
       setIsCreateOpen(false);
@@ -476,6 +479,15 @@ export const ContainerRegistryView: React.FC<ContainerRegistryViewProps> = ({ on
                 <input type="text" value={destinationDechargement} onChange={(e) => setDestinationDechargement(e.target.value)}
                   placeholder="Ex: Zone Industrielle Bassa, Douala"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Dépôt de Retour Prévu (optionnel)</label>
+                <input type="text" value={depotRetourPrevu} onChange={(e) => setDepotRetourPrevu(e.target.value)}
+                  placeholder="Ex: Dépôt Bonabéri, Douala"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Sera automatiquement proposé lors du retour du conteneur vide, pour éviter toute confusion.
+                </p>
               </div>
 
               <div>

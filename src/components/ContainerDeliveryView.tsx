@@ -78,6 +78,23 @@ export const ContainerDeliveryView: React.FC = () => {
     }
   };
 
+  // Dès qu'un conteneur est choisi, on reprend automatiquement ce qui a
+  // déjà été enregistré à sa création (client, destination) plutôt que de
+  // laisser ressaisir — évite tout risque de saisir une information
+  // différente de celle déjà connue du système.
+  useEffect(() => {
+    if (!selectedContainer) return;
+    setClientName(selectedContainer.clientNom || '');
+    const knownDestination = selectedContainer.destinationDechargement || '';
+    const matchesKnownList = CAMEROON_DESTINATIONS.some((d) => d.label === knownDestination);
+    setIsCustomDestination(knownDestination.length > 0 && !matchesKnownList);
+    setDeliveryAddress(knownDestination);
+    if (knownDestination) {
+      const km = getDistanceKm(knownDestination, selectedContainer.port === 'Douala' ? 'PAD' : 'PAK');
+      if (km) setDistanceKm(km);
+    }
+  }, [selectedContainerId]);
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';

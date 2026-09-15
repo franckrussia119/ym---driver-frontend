@@ -98,6 +98,7 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
   const [editClientContact, setEditClientContact] = useState('');
   const [editContenuDescription, setEditContenuDescription] = useState('');
   const [editDestinationDechargement, setEditDestinationDechargement] = useState('');
+  const [editDepotRetourPrevu, setEditDepotRetourPrevu] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -113,6 +114,7 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
     setEditClientContact(container.clientContact || '');
     setEditContenuDescription(container.contenuDescription || '');
     setEditDestinationDechargement(container.destinationDechargement || '');
+    setEditDepotRetourPrevu(container.depotRetourPrevu || '');
     setEditError(null);
     setIsEditOpen(true);
   };
@@ -132,6 +134,7 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
         clientContact: editClientContact,
         contenuDescription: editContenuDescription,
         destinationDechargement: editDestinationDechargement,
+        depotRetourPrevu: editDepotRetourPrevu,
       });
       setIsEditOpen(false);
       await fetchContainer();
@@ -627,6 +630,11 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Destination du Déchargement</label>
                 <input type="text" value={editDestinationDechargement} onChange={(e) => setEditDestinationDechargement(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+              </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Dépôt de Retour Prévu</label>
+                <input type="text" value={editDepotRetourPrevu} onChange={(e) => setEditDepotRetourPrevu(e.target.value)}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
               </div>
               <div>

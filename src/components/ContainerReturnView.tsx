@@ -53,7 +53,7 @@ export const ContainerReturnView: React.FC = () => {
   const openReturn = (c: Container) => {
     setTarget(c);
     setDateRetourVide(new Date().toISOString().split('T')[0]);
-    setDepotRetour('');
+    setDepotRetour(c.depotRetourPrevu || '');
     setFraisRetour(0);
     setNotes('');
     setPhotoUrl(null);
@@ -190,6 +190,11 @@ export const ContainerReturnView: React.FC = () => {
                 <input type="text" required value={depotRetour} onChange={(e) => setDepotRetour(e.target.value)}
                   placeholder="Ex: Dépôt Bonabéri, Douala"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold" />
+                {target?.depotRetourPrevu && (
+                  <p className="text-[10px] text-emerald-600 mt-1">
+                    Pré-rempli depuis le dépôt prévu à la création — modifiable si la situation réelle diffère.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Frais de Retour (FCFA)</label>
