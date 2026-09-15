@@ -16,10 +16,13 @@ import {
   Truck,
   FileText,
   UserRound,
+  Paperclip,
 } from 'lucide-react';
 import { formatFCFA } from '../types';
-import { Container, ContainerReport, BLGroup, RevenueSummary, OpsBoardItem, listContainers, getContainerReport, listBLGroups, getContainersByBL, getRevenueSummary, getOpsBoard } from '../lib/containers';
+import { Container, ContainerReport, BLGroup, BLReport, RevenueSummary, OpsBoardItem, listContainers, getContainerReport, listBLGroups, getContainersByBL, getBLReport, getRevenueSummary, getOpsBoard } from '../lib/containers';
 import { PrintableContainerReportView } from './PrintableContainerReportView';
+import { DOC_TYPE_LABELS } from './ContainerDetailView';
+import { PrintableBLReportView } from './PrintableBLReportView';
 import { usePolling } from '../lib/usePolling';
 import { listPOD } from '../lib/pod';
 import { PODRecord } from './ProofOfDeliveryView';
@@ -145,6 +148,21 @@ export const ContainerReportsView: React.FC = () => {
     }
   };
 
+  const [blReport, setBlReport] = useState<BLReport | null>(null);
+  const [isLoadingBlReport, setIsLoadingBlReport] = useState(false);
+
+  const openBlReport = async () => {
+    if (!selectedBl) return;
+    setIsLoadingBlReport(true);
+    try {
+      setBlReport(await getBLReport(selectedBl));
+    } catch (err) {
+      setBlGroupsError(err instanceof ApiError ? err.message : 'Impossible de générer le rapport de ce BL.');
+    } finally {
+      setIsLoadingBlReport(false);
+    }
+  };
+
 
   // Filtres — Rapport Opérations
   const [opsPortFilter, setOpsPortFilter] = useState<'ALL' | 'Douala' | 'Kribi'>('ALL');
@@ -233,6 +251,40 @@ export const ContainerReportsView: React.FC = () => {
               <StatCard icon={CheckCircle2} label="Étapes Terminées" value={`${report.stepsCompleted}/${report.stepsTotal}`} accent={report.stepsBlocked > 0 ? 'rose' : 'emerald'} />
               <StatCard icon={Package} label="Documents Validés" value={`${report.documentsValidated}/${report.documentsCount}`} accent="blue" />
             </div>
+
+            {report.documents.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b border-slate-200">
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                    <Paperclip className="w-4 h-4 text-blue-600" /> Documents Téléversés ({report.documents.length})
+                  </h3>
+                </div>
+                <div className="p-4 flex flex-wrap gap-2">
+                  {report.documents.map((doc) => (
+                    <a
+                      key={doc.id}
+                      href={doc.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl text-xs font-bold text-blue-700 cursor-pointer transition-colors"
+                    >
+                      <FileText className="w-4 h-4 shrink-0" />
+                      {DOC_TYPE_LABELS[doc.type] || doc.type}
+                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                        doc.status === 'VALIDATED' ? 'bg-emerald-100 text-emerald-700' :
+                        doc.status === 'RECEIVED' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-200 text-slate-600'
+                      }`}>
+                        {doc.status === 'VALIDATED' ? 'Validé' : doc.status === 'RECEIVED' ? 'Reçu' : 'En attente'}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-400 px-4 pb-3">
+                  Ces documents restent consultables ici même après la clôture du conteneur.
+                </p>
+              </div>
+            )}
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="p-4 bg-slate-50 border-b border-slate-200">
@@ -682,13 +734,23 @@ export const ContainerReportsView: React.FC = () => {
         <div className="space-y-4">
           {selectedBl ? (
             <>
-              <button
-                onClick={() => { setSelectedBl(null); setBlContainers([]); }}
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Retour à la liste des BL
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => { setSelectedBl(null); setBlContainers([]); }}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Retour à la liste des BL
+                </button>
+                <button
+                  onClick={openBlReport}
+                  disabled={isLoadingBlReport}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1.5"
+                >
+                  {isLoadingBlReport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+                  Exporter en PDF
+                </button>
+              </div>
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="p-4 bg-slate-50 border-b border-slate-200">
                   <h3 className="font-bold text-sm text-slate-900">BL {selectedBl} — {blContainers.length} conteneur(s)</h3>
@@ -963,6 +1025,10 @@ export const ContainerReportsView: React.FC = () => {
         </>
       )}
       </>
+      )}
+
+      {blReport && (
+        <PrintableBLReportView report={blReport} onClose={() => setBlReport(null)} />
       )}
     </div>
   );

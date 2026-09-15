@@ -131,6 +131,7 @@ export interface ContainerReport {
   stepsBlocked: number;
   documentsCount: number;
   documentsValidated: number;
+  documents: ContainerDocument[];
   timeline: Array<{ stepNumber: number; stepName: string; status: PipelineStepStatus; dateDone: string | null; agent: string | null; notes: string | null }>;
   pod: any[];
   return: ContainerReturn | null;
@@ -186,6 +187,21 @@ export async function getRevenueSummary(): Promise<RevenueSummary> {
 
 export async function getContainersByBL(blNumber: string): Promise<Container[]> {
   return api.get<Container[]>(`/api/containers/bl/${encodeURIComponent(blNumber)}`);
+}
+
+export interface BLReport {
+  blNumber: string;
+  totalContainers: number;
+  ouverts: number;
+  fermes: number;
+  totalRevenueFCFA: number;
+  totalCostsFCFA: number;
+  totalMargeFCFA: number;
+  containers: ContainerReport[];
+}
+
+export async function getBLReport(blNumber: string): Promise<BLReport> {
+  return api.get<BLReport>(`/api/containers/bl/${encodeURIComponent(blNumber)}/report`);
 }
 
 // Conteneurs assignés au chauffeur, encore ouverts, et PAS ENCORE livrés —

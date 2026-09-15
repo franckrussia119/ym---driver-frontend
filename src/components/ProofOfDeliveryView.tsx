@@ -660,6 +660,19 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                     const c = assignedContainers.find((x) => x.id === id);
                     setBlNumber(c?.blNumber || '');
                     setContainerNumber(c?.containerNumber || '');
+                    // On reprend ce qui a déjà été enregistré à la création
+                    // du conteneur (client, destination) plutôt que de
+                    // laisser ressaisir — évite toute confusion avec ce qui
+                    // est déjà connu du système.
+                    setClientName(c?.clientNom || '');
+                    const knownDestination = c?.destinationDechargement || '';
+                    const matchesKnownList = CAMEROON_DESTINATIONS.some((d) => d.label === knownDestination);
+                    setIsCustomDestination(knownDestination.length > 0 && !matchesKnownList);
+                    setDeliveryAddress(knownDestination);
+                    if (knownDestination && c) {
+                      const km = getDistanceKm(knownDestination, c.port === 'Douala' ? 'PAD' : 'PAK');
+                      if (km) setDistanceKm(km);
+                    }
                   }}
                   placeholder="— Choisir le conteneur assigné —"
                   searchPlaceholder="Rechercher par N° conteneur ou BL…"
@@ -973,7 +986,14 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                     sublabel: c.port === 'Douala' ? 'PAD' : 'PAK',
                   }))}
                   value={returnContainerId}
-                  onChange={setReturnContainerId}
+                  onChange={(id) => {
+                    setReturnContainerId(id);
+                    const c = pendingReturnContainers.find((x) => x.id === id);
+                    // On reprend le dépôt de retour déjà planifié à la
+                    // création du conteneur, plutôt que de laisser
+                    // ressaisir — reste modifiable si besoin.
+                    setReturnDepot(c?.depotRetourPrevu || '');
+                  }}
                   placeholder="— Choisir —"
                   searchPlaceholder="Rechercher par N° conteneur ou BL…"
                 />
@@ -1001,6 +1021,11 @@ export const ProofOfDeliveryView: React.FC<ProofOfDeliveryViewProps> = ({
                   placeholder="Ex: Dépôt Bonabéri, Douala"
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
                 />
+                {pendingReturnContainers.find((c) => c.id === returnContainerId)?.depotRetourPrevu && (
+                  <p className="text-[10px] text-emerald-600 mt-1">
+                    Pré-rempli depuis le dépôt prévu à la création — modifiable si la situation réelle diffère.
+                  </p>
+                )}
               </div>
 
               <div>

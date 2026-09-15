@@ -55,7 +55,7 @@ const STEP_STATUS_STYLE: Record<string, { badge: string; icon: React.ElementType
   BLOCKED: { badge: 'bg-rose-50 text-rose-700 border-rose-200', icon: XCircle },
 };
 
-const DOC_TYPE_LABELS: Record<DocumentType, string> = {
+export const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   BL_OBL: 'Bill of Lading (OBL)',
   BL_TELEX: 'Bill of Lading (Telex)',
   TICKET: 'Ticket',
@@ -504,9 +504,10 @@ export const ContainerDetailView: React.FC<ContainerDetailViewProps> = ({ contai
           <div className="divide-y divide-slate-100">
             {container.documents.map((doc) => (
               <div key={doc.id} className="p-3.5 flex items-center justify-between gap-3">
-                <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 min-w-0 text-blue-700 hover:underline">
+                <a href={doc.fileUrl} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 min-w-0 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 cursor-pointer transition-colors">
                   <FileText className="w-4 h-4 shrink-0" />
-                  <span className="text-xs font-semibold truncate">{DOC_TYPE_LABELS[doc.type]}</span>
+                  <span className="text-xs font-bold truncate">Voir : {DOC_TYPE_LABELS[doc.type]}</span>
                 </a>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[10px] text-slate-400">{doc.uploadedByNom}</span>
