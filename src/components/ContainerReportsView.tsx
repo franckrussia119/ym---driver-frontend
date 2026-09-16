@@ -176,6 +176,7 @@ export const ContainerReportsView: React.FC = () => {
   const [delFromDate, setDelFromDate] = useState('');
   const [delToDate, setDelToDate] = useState('');
   const [delStatusFilter, setDelStatusFilter] = useState<'ALL' | PODRecord['status']>('ALL');
+  const [delSearch, setDelSearch] = useState('');
   const [report, setReport] = useState<ContainerReport | null>(null);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
@@ -443,6 +444,11 @@ export const ContainerReportsView: React.FC = () => {
     if (delStatusFilter !== 'ALL' && d.status !== delStatusFilter) return false;
     if (delFromDate && d.dateTime < delFromDate) return false;
     if (delToDate && d.dateTime > `${delToDate}T23:59:59`) return false;
+    if (delSearch) {
+      const q = delSearch.toLowerCase();
+      const matches = d.containerNumber.toLowerCase().includes(q) || d.blNumber.toLowerCase().includes(q);
+      if (!matches) return false;
+    }
     return true;
   });
 
@@ -876,6 +882,19 @@ export const ContainerReportsView: React.FC = () => {
               <input type="date" value={delToDate} onChange={(e) => setDelToDate(e.target.value)}
                 className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg" />
             </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] font-bold text-slate-500 block mb-1">Rechercher</label>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={delSearch}
+                  onChange={(e) => setDelSearch(e.target.value)}
+                  placeholder="N° conteneur ou BL…"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-semibold"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -906,11 +925,12 @@ export const ContainerReportsView: React.FC = () => {
                         <FileText className="w-4.5 h-4.5" />
                       </div>
                       <div className="min-w-0">
-                        <span className="font-bold text-sm text-slate-900 block truncate">{d.recipientName}</span>
+                        <span className="font-bold text-sm text-slate-900 block truncate">{d.containerNumber}</span>
                         <span className="text-[11px] text-slate-500">BL {d.blNumber}</span>
                       </div>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-2">{d.dateTime}</p>
+                    <p className="text-[10px] text-slate-400 mt-1.5 truncate">Reçu par : {d.recipientName}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">{d.dateTime}</p>
                     {d.bordereauPhotoUrl && (
                       <a href={d.bordereauPhotoUrl} target="_blank" rel="noreferrer"
                         className="inline-block mt-2 text-[10px] text-blue-600 font-bold underline">
