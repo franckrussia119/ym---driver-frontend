@@ -23,6 +23,7 @@ import { Container, ContainerReport, BLGroup, BLReport, RevenueSummary, OpsBoard
 import { PrintableContainerReportView } from './PrintableContainerReportView';
 import { DOC_TYPE_LABELS } from './ContainerDetailView';
 import { PrintableBLReportView } from './PrintableBLReportView';
+import { PrintableInterchangeDocumentView } from './PrintableInterchangeDocumentView';
 import { usePolling } from '../lib/usePolling';
 import { listPOD } from '../lib/pod';
 import { PODRecord } from './ProofOfDeliveryView';
@@ -150,6 +151,7 @@ export const ContainerReportsView: React.FC = () => {
 
   const [blReport, setBlReport] = useState<BLReport | null>(null);
   const [isLoadingBlReport, setIsLoadingBlReport] = useState(false);
+  const [isInterchangeDocOpen, setIsInterchangeDocOpen] = useState(false);
 
   const openBlReport = async () => {
     if (!selectedBl) return;
@@ -748,14 +750,23 @@ export const ContainerReportsView: React.FC = () => {
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Retour à la liste des BL
                 </button>
-                <button
-                  onClick={openBlReport}
-                  disabled={isLoadingBlReport}
-                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  {isLoadingBlReport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
-                  Exporter en PDF
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={openBlReport}
+                    disabled={isLoadingBlReport}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1.5"
+                  >
+                    {isLoadingBlReport ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+                    Exporter en PDF
+                  </button>
+                  <button
+                    onClick={() => setIsInterchangeDocOpen(true)}
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-1.5"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Document d'Interchange
+                  </button>
+                </div>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="p-4 bg-slate-50 border-b border-slate-200">
@@ -1049,6 +1060,14 @@ export const ContainerReportsView: React.FC = () => {
 
       {blReport && (
         <PrintableBLReportView report={blReport} onClose={() => setBlReport(null)} />
+      )}
+
+      {isInterchangeDocOpen && selectedBl && (
+        <PrintableInterchangeDocumentView
+          blNumber={selectedBl}
+          containers={blContainers}
+          onClose={() => setIsInterchangeDocOpen(false)}
+        />
       )}
     </div>
   );
